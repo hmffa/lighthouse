@@ -9,6 +9,7 @@ paths:
   /api/v1/admin/users/:
     get:
       summary: List users
+      operationId: listUsers
       security:
         - basicAuth: []
       responses:
@@ -20,8 +21,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/ServerError'
     post:
       summary: Create user
+      operationId: createUser
       security:
         - basicAuth: []
       requestBody:
@@ -37,19 +43,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '409':
-          description: Conflict
+          description: Conflict — user with this username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: invalid_request
+                error_description: user already exists
+        '500':
+          $ref: '#/components/responses/ServerError'
   /api/v1/admin/users/{username}:
+    parameters:
+      - in: path
+        name: username
+        required: true
+        schema:
+          type: string
+        description: The username of the user
     get:
       summary: Get user by username
+      operationId: getUser
       security:
         - basicAuth: []
-      parameters:
-        - in: path
-          name: username
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: OK
@@ -57,18 +78,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
-          description: Not Found
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
     put:
       summary: Update user by username
+      operationId: updateUser
       security:
         - basicAuth: []
-      parameters:
-        - in: path
-          name: username
-          required: true
-          schema:
-            type: string
       requestBody:
         required: true
         content:
@@ -82,29 +102,81 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
-          description: Not Found
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
     delete:
       summary: Delete user by username
+      operationId: deleteUser
       security:
         - basicAuth: []
-      parameters:
-        - in: path
-          name: username
-          required: true
-          schema:
-            type: string
       responses:
         '204':
           description: No Content
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
-          description: Not Found
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/ServerError'
 components:
   securitySchemes:
     basicAuth:
       type: http
       scheme: basic
+  responses:
+    BadRequestError:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: invalid_request
+            error_description: username and password are required
+    UnauthorizedError:
+      description: Authentication information is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: invalid_client
+            error_description: missing credentials
+    NotFoundError:
+      description: The requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: not_found
+            error_description: user not found
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: server_error
+            error_description: unexpected error
   schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: A machine-readable error code
+        error_description:
+          type: string
+          description: A human-readable explanation of the error
     User:
       type: object
       properties:

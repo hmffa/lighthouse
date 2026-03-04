@@ -118,13 +118,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                exp:
-                  type: number
-                  format: date-time
-                  nullable: true
-                  example: '1756536110'
+              $ref: '#/components/schemas/UpdatePublicKeyMetadata'
         required: true
       tags:
         - Keys
@@ -224,7 +218,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/KMSInfo'
-          description: Successfully updated signing algorithm.
+          description: Successfully updated RSA key length.
         '400':
           $ref: '#/components/responses/BadRequestError'
         '500':
@@ -3971,16 +3965,11 @@ components:
       description: Editable metadata fields for a public key.
       type: object
       properties:
-        nbf:
-          type: number
-          format: date-time
-          nullable: true
-          example: '1756449710'
         exp:
           type: number
-          format: date-time
           nullable: true
-          example: '1756536110'
+          description: Expiry time as Unix timestamp (seconds since epoch).
+          example: 1756536110
     RotatePublicKeyRequest:
       description: Request body for rotating a public key.
       type: object
