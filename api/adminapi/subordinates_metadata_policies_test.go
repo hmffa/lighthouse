@@ -145,7 +145,7 @@ func TestPutSubordinateMetadataPolicies(t *testing.T) {
 		if updated.MetadataPolicy == nil {
 			t.Fatalf("Expected MetadataPolicy to be saved in DB, got nil")
 		}
-		
+
 		rpPol := (*updated.MetadataPolicy).RelyingParty
 		contacts, ok := rpPol["contacts"]
 		if !ok {
@@ -201,6 +201,7 @@ func TestPutSubordinateMetadataPolicies(t *testing.T) {
 		}
 	})
 }
+
 // --- POST /subordinates/:subordinateID/metadata-policies TESTS ---
 
 func TestPostSubordinateMetadataPolicies(t *testing.T) {
@@ -238,12 +239,12 @@ func TestPostSubordinateMetadataPolicies(t *testing.T) {
 		if updated.MetadataPolicy == nil {
 			t.Fatalf("Expected MetadataPolicy to be saved in DB, got nil")
 		}
-		
+
 		opPol := (*updated.MetadataPolicy).OpenIDProvider
 		if opPol == nil {
 			t.Errorf("Expected OpenIDProvider policy to exist")
 		}
-		
+
 		issuer, ok := opPol["issuer"]
 		if !ok || issuer["value"] != "https://global.op.example.org" {
 			t.Errorf("Failed to retrieve correctly copied policy: %+v", updated.MetadataPolicy)
@@ -518,7 +519,7 @@ func TestPostSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		if existing, ok := rpPol["existing_claim"]; !ok || existing["value"] != "kept" {
 			t.Errorf("Expected existing claim to be kept during merge")
 		}
-		
+
 		// New claim should be added
 		if newClaim, ok := rpPol["new_claim"]; !ok || newClaim["add"] == nil {
 			t.Errorf("Expected new claim to be merged in")
@@ -574,7 +575,7 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 
 		// Verify DB update
 		updated, _ := backends.Subordinates.Get("https://delete-type.example.org")
-		
+
 		if (*updated.MetadataPolicy).RelyingParty != nil {
 			t.Errorf("Expected RelyingParty to be entirely deleted")
 		}
@@ -826,7 +827,7 @@ func TestDeleteSubordinateMetadataPolicyByClaim(t *testing.T) {
 		// Verify DB update
 		updated, _ := backends.Subordinates.Get("https://delete-claim.example.org")
 		rpPol := (*updated.MetadataPolicy).RelyingParty
-		
+
 		if _, ok := rpPol["delete_me"]; ok {
 			t.Errorf("Expected claim \"delete_me\" to be deleted")
 		}
@@ -928,7 +929,7 @@ func TestPutSubordinateMetadataPolicyByOperator(t *testing.T) {
 			MetadataPolicy: &oidfed.MetadataPolicies{
 				RelyingParty: oidfed.MetadataPolicy{
 					"contacts": oidfed.MetadataPolicyEntry{
-						"add": []any{"old@example.org"},
+						"add":   []any{"old@example.org"},
 						"value": "untouched",
 					},
 				},
@@ -954,7 +955,7 @@ func TestPutSubordinateMetadataPolicyByOperator(t *testing.T) {
 		if contacts["value"] != "untouched" {
 			t.Errorf("Expected sibling operators to remain safely untouched")
 		}
-		
+
 		addArr := contacts["add"].([]any)
 		if len(addArr) == 0 || addArr[0].(string) != "new@example.org" {
 			t.Errorf("Expected operator data to be fully replaced")
@@ -1011,7 +1012,7 @@ func TestDeleteSubordinateMetadataPolicyByOperator(t *testing.T) {
 		// Verify DB update
 		updated, _ := backends.Subordinates.Get("https://delete-operator.example.org")
 		contacts := (*updated.MetadataPolicy).RelyingParty["contacts"]
-		
+
 		if _, ok := contacts["delete_me"]; ok {
 			t.Errorf("Expected operator delete_me to be deleted")
 		}
@@ -1143,7 +1144,7 @@ func TestPutGeneralMetadataPolicies(t *testing.T) {
 		if !found {
 			t.Fatalf("Expected MetadataPolicy to be saved in KV")
 		}
-		
+
 		rpPol := updated.RelyingParty
 		contacts, ok := rpPol["contacts"]
 		if !ok {
@@ -1412,7 +1413,7 @@ func TestGeneralMetadataPolicyByClaim(t *testing.T) {
 		var updated oidfed.MetadataPolicies
 		backends.KV.GetAs(model.KeyValueScopeSubordinateStatement, model.KeyValueKeyMetadataPolicy, &updated)
 		rpPol := updated.RelyingParty
-		
+
 		if _, ok := rpPol["delete_me"]; ok {
 			t.Errorf("Expected claim 'delete_me' to be deleted")
 		}
@@ -1458,7 +1459,7 @@ func TestGeneralMetadataPolicyByOperator(t *testing.T) {
 		backends.KV.SetAny(model.KeyValueScopeSubordinateStatement, model.KeyValueKeyMetadataPolicy, &oidfed.MetadataPolicies{
 			RelyingParty: oidfed.MetadataPolicy{
 				"contacts": oidfed.MetadataPolicyEntry{
-					"add": []any{"old@example.org"},
+					"add":   []any{"old@example.org"},
 					"value": "untouched",
 				},
 			},
@@ -1508,7 +1509,7 @@ func TestGeneralMetadataPolicyByOperator(t *testing.T) {
 		var updated oidfed.MetadataPolicies
 		backends.KV.GetAs(model.KeyValueScopeSubordinateStatement, model.KeyValueKeyMetadataPolicy, &updated)
 		contacts := updated.RelyingParty["contacts"]
-		
+
 		if _, ok := contacts["delete_me"]; ok {
 			t.Errorf("Expected operator delete_me to be deleted")
 		}

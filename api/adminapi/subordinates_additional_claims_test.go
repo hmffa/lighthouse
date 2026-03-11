@@ -74,13 +74,13 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 		app, _ := setupSubordinateAdditionalClaimsApp(t)
 		req := httptest.NewRequest("GET", "/subordinates/9999/additional-claims", http.NoBody)
 		resp, _ := app.Test(req, -1)
-		
+
 		// The ListAdditionalClaims endpoint returns an empty array when the subordinate has no claims
 		// or doesn't exist, so we expect a 200 instead of a 404 here.
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
-		
+
 		body, _ := io.ReadAll(resp.Body)
 		if string(body) != "[]" {
 			t.Errorf("Expected empty JSON array '[]', got %s", string(body))
@@ -176,7 +176,7 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 		if len(updated.SubordinateAdditionalClaims) != 2 {
 			t.Errorf("Expected exactly 2 claims after POST merge, got %d", len(updated.SubordinateAdditionalClaims))
 		}
-		
+
 		// Verify Event
 		events, _, _ := backends.SubordinateEvents.GetBySubordinateID(saved.ID, model.EventQueryOpts{})
 		found := false
@@ -190,7 +190,7 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 			t.Errorf("Expected ClaimsUpdated event")
 		}
 	})
-	
+
 	t.Run("POST InvalidBody", func(t *testing.T) {
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
@@ -297,7 +297,7 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 		}
 
 		updated, _ := backends.Subordinates.Get("https://claim-by-id-put.example.org")
-		
+
 		foundTarget := false
 		foundSafe := false
 		for _, c := range updated.SubordinateAdditionalClaims {
@@ -485,7 +485,7 @@ func TestGeneralAdditionalClaimsAll(t *testing.T) {
 
 		var updated []generalAdditionalClaim
 		backends.KV.GetAs(model.KeyValueScopeSubordinateStatement, model.KeyValueKeyAdditionalClaims, &updated)
-		
+
 		if len(updated) != 2 {
 			t.Errorf("Expected exactly 2 claims after PUT replacement, got %d", len(updated))
 		}
@@ -516,7 +516,7 @@ func TestGeneralAdditionalClaimsAll(t *testing.T) {
 
 		var updated []generalAdditionalClaim
 		backends.KV.GetAs(model.KeyValueScopeSubordinateStatement, model.KeyValueKeyAdditionalClaims, &updated)
-		
+
 		if len(updated) != 2 {
 			t.Errorf("Expected 2 claims after POST merge, got %d", len(updated))
 		}
@@ -590,7 +590,7 @@ func TestGeneralAdditionalClaimByID(t *testing.T) {
 
 		var updated []generalAdditionalClaim
 		backends.KV.GetAs(model.KeyValueScopeSubordinateStatement, model.KeyValueKeyAdditionalClaims, &updated)
-		
+
 		if len(updated) != 2 {
 			t.Fatalf("Expected 2 claims to remain")
 		}
@@ -620,10 +620,9 @@ func TestGeneralAdditionalClaimByID(t *testing.T) {
 
 		var updated []generalAdditionalClaim
 		backends.KV.GetAs(model.KeyValueScopeSubordinateStatement, model.KeyValueKeyAdditionalClaims, &updated)
-		
+
 		if len(updated) != 1 || updated[0].Claim != "keep_global" {
 			t.Errorf("Expected only keep_global to remain, got %+v", updated)
 		}
 	})
 }
-

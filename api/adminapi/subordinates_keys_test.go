@@ -215,7 +215,7 @@ func TestSubordinateJWKS(t *testing.T) {
 			t.Errorf("Expected JWKAdded event to be logged")
 		}
 	})
-	
+
 	t.Run("POST InvalidBody", func(t *testing.T) {
 		app, backends := setupSubordinateKeysApp(t)
 		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
@@ -234,6 +234,7 @@ func TestSubordinateJWKS(t *testing.T) {
 		}
 	})
 }
+
 // --- DELETE /subordinates/:subordinateID/jwks/:kid TESTS ---
 
 func TestSubordinateJWKDelete(t *testing.T) {

@@ -88,7 +88,7 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("Expected status 200, got %d", resp.StatusCode)
 		}
-		
+
 		body, _ := io.ReadAll(resp.Body)
 		if string(body) != "{}" {
 			t.Errorf("Expected empty json object for nil constraints, got %s", string(body))
@@ -177,7 +177,7 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 			t.Errorf("Expected ConstraintsDeleted event to be logged")
 		}
 	})
-	
+
 	t.Run("NotFound", func(t *testing.T) {
 		app, _ := setupSubordinateConstraintsApp(t)
 		req := httptest.NewRequest("GET", "/subordinates/9999/constraints", http.NoBody)
@@ -187,6 +187,7 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 		}
 	})
 }
+
 // --- GET, PUT, DELETE /subordinates/:subordinateID/constraints/max-path-length TESTS ---
 
 func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
@@ -478,7 +479,7 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 			},
 			Constraints: &oidfed.ConstraintSpecification{
 				AllowedEntityTypes: []string{"old_type"},
-				MaxPathLength: &length,
+				MaxPathLength:      &length,
 			},
 		})
 		saved, _ := backends.Subordinates.Get("https://allowed-put.example.org")
@@ -526,7 +527,7 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 		}
 
 		updated, _ := backends.Subordinates.Get("https://allowed-post.example.org")
-		
+
 		// POST should merge the new type with the old type
 		types := updated.Constraints.AllowedEntityTypes
 		if len(types) != 2 {
@@ -544,7 +545,7 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 			},
 			Constraints: &oidfed.ConstraintSpecification{
 				AllowedEntityTypes: []string{"delete_me", "keep_me"},
-				MaxPathLength: &length,
+				MaxPathLength:      &length,
 			},
 		})
 		saved, _ := backends.Subordinates.Get("https://allowed-delete.example.org")
@@ -558,7 +559,7 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 
 		updated, _ := backends.Subordinates.Get("https://allowed-delete.example.org")
 		types := updated.Constraints.AllowedEntityTypes
-		
+
 		if len(types) != 1 || types[0] != "keep_me" {
 			t.Errorf("Expected delete_me to be removed, leaving keep_me. Got: %+v", types)
 		}
@@ -695,7 +696,7 @@ func TestGeneralConstraintsMaxPathLength(t *testing.T) {
 		app, backends := setupGeneralConstraintsApp(t)
 		length := 5
 		backends.KV.SetAny(model.KeyValueScopeSubordinateStatement, model.KeyValueKeyConstraints, &oidfed.ConstraintSpecification{
-			MaxPathLength: &length,
+			MaxPathLength:      &length,
 			AllowedEntityTypes: []string{"keep_me"},
 		})
 

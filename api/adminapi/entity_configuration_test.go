@@ -902,6 +902,9 @@ func TestGetMetadata(t *testing.T) {
 				getFn: func(scope, key string) (datatypes.JSON, error) {
 					return nil, nil
 				},
+				setFn: func(scope, key string, value datatypes.JSON) error {
+					return nil
+				},
 			},
 		)
 
@@ -1045,6 +1048,9 @@ func TestGetMetadataClaim(t *testing.T) {
 			&mockKeyValueStore{
 				getFn: func(scope, key string) (datatypes.JSON, error) {
 					return nil, nil
+				},
+				setFn: func(scope, key string, value datatypes.JSON) error {
+					return nil
 				},
 			},
 		)
@@ -1319,6 +1325,9 @@ func TestDeleteMetadataClaim(t *testing.T) {
 				getFn: func(scope, key string) (datatypes.JSON, error) {
 					return nil, nil
 				},
+				setFn: func(scope, key string, value datatypes.JSON) error {
+					return nil
+				},
 			},
 		)
 
@@ -1442,6 +1451,9 @@ func TestGetMetadataEntityType(t *testing.T) {
 			&mockKeyValueStore{
 				getFn: func(scope, key string) (datatypes.JSON, error) {
 					return nil, nil
+				},
+				setFn: func(scope, key string, value datatypes.JSON) error {
+					return nil
 				},
 			},
 		)
@@ -1788,6 +1800,9 @@ func TestDeleteMetadataEntityType(t *testing.T) {
 			&mockKeyValueStore{
 				getFn: func(scope, key string) (datatypes.JSON, error) {
 					return nil, nil
+				},
+				setFn: func(scope, key string, value datatypes.JSON) error {
+					return nil
 				},
 			},
 		)

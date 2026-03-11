@@ -18,22 +18,22 @@ import (
 
 type mockTrustMarkTypesStore struct {
 	model.TrustMarkTypesStore
-	listFn              func() ([]model.TrustMarkType, error)
-	createFn            func(req model.AddTrustMarkType) (*model.TrustMarkType, error)
-	getFn               func(id string) (*model.TrustMarkType, error)
-	updateFn            func(id string, req model.AddTrustMarkType) (*model.TrustMarkType, error)
-	deleteFn            func(id string) error
-	listIssuersFn       func(id string) ([]model.TrustMarkIssuer, error)
-	setIssuersFn        func(id string, issuers []model.AddTrustMarkIssuer) ([]model.TrustMarkIssuer, error)
-	addIssuerFn         func(id string, issuer model.AddTrustMarkIssuer) ([]model.TrustMarkIssuer, error)
-	deleteIssuerByIDFn  func(id string, issuerID uint) ([]model.TrustMarkIssuer, error)
+	listFn                 func() ([]model.TrustMarkType, error)
+	createFn               func(req model.AddTrustMarkType) (*model.TrustMarkType, error)
+	getFn                  func(id string) (*model.TrustMarkType, error)
+	updateFn               func(id string, req model.AddTrustMarkType) (*model.TrustMarkType, error)
+	deleteFn               func(id string) error
+	listIssuersFn          func(id string) ([]model.TrustMarkIssuer, error)
+	setIssuersFn           func(id string, issuers []model.AddTrustMarkIssuer) ([]model.TrustMarkIssuer, error)
+	addIssuerFn            func(id string, issuer model.AddTrustMarkIssuer) ([]model.TrustMarkIssuer, error)
+	deleteIssuerByIDFn     func(id string, issuerID uint) ([]model.TrustMarkIssuer, error)
 	deleteIssuerByStringFn func(id string, issuer string) ([]model.TrustMarkIssuer, error)
-	getOwnerFn          func(id string) (*model.TrustMarkOwner, error)
-	createOwnerFn       func(id string, req model.AddTrustMarkOwner) (*model.TrustMarkOwner, error)
-	updateOwnerFn       func(id string, req model.AddTrustMarkOwner) (*model.TrustMarkOwner, error)
-	deleteOwnerFn       func(id string) error
-	
-	ownersByTypeFn func() (oidfed.TrustMarkOwners, error)
+	getOwnerFn             func(id string) (*model.TrustMarkOwner, error)
+	createOwnerFn          func(id string, req model.AddTrustMarkOwner) (*model.TrustMarkOwner, error)
+	updateOwnerFn          func(id string, req model.AddTrustMarkOwner) (*model.TrustMarkOwner, error)
+	deleteOwnerFn          func(id string) error
+
+	ownersByTypeFn  func() (oidfed.TrustMarkOwners, error)
 	issuersByTypeFn func() (oidfed.AllowedTrustMarkIssuers, error)
 }
 
@@ -135,7 +135,6 @@ func (m *mockTrustMarkTypesStore) IssuersByType() (oidfed.AllowedTrustMarkIssuer
 	}
 	return nil, nil
 }
-
 
 // --- SETUP HELPERS ---
 

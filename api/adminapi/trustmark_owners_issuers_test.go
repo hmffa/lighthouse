@@ -163,7 +163,6 @@ func (m *mockTrustMarkIssuersStore) DeleteType(id string, typeID uint) ([]uint, 
 	return nil, nil
 }
 
-
 // --- SETUP HELPERS ---
 
 func setupTrustMarkOwnersApp(ownersStore model.TrustMarkOwnersStore, typesStore model.TrustMarkTypesStore) *fiber.App {
@@ -588,7 +587,7 @@ func TestTrustMarkOwnersHandlers_TypesSet(t *testing.T) {
 			t.Errorf("Expected 500, got %d", resp.StatusCode)
 		}
 	})
-	
+
 	t.Run("LoadTypesError", func(t *testing.T) {
 		mockStore := &mockTrustMarkOwnersStore{
 			setTypesFn: func(id string, typeIdents []string) ([]uint, error) {
@@ -661,7 +660,7 @@ func TestTrustMarkOwnersHandlers_TypesAdd(t *testing.T) {
 			t.Errorf("Expected 500, got %d", resp.StatusCode)
 		}
 	})
-	
+
 	t.Run("LoadTypesError", func(t *testing.T) {
 		mockStore := &mockTrustMarkOwnersStore{
 			addTypeFn: func(id string, typeID uint) ([]uint, error) {
@@ -1117,7 +1116,7 @@ func TestGlobalTrustMarkIssuersHandlers_TypesSet(t *testing.T) {
 			t.Errorf("Expected 500, got %d", resp.StatusCode)
 		}
 	})
-	
+
 	t.Run("LoadTypesError", func(t *testing.T) {
 		mockStore := &mockTrustMarkIssuersStore{
 			setTypesFn: func(id string, typeIdents []string) ([]uint, error) {
@@ -1190,7 +1189,7 @@ func TestGlobalTrustMarkIssuersHandlers_TypesAdd(t *testing.T) {
 			t.Errorf("Expected 500, got %d", resp.StatusCode)
 		}
 	})
-	
+
 	t.Run("LoadTypesError", func(t *testing.T) {
 		mockStore := &mockTrustMarkIssuersStore{
 			addTypeFn: func(id string, typeID uint) ([]uint, error) {

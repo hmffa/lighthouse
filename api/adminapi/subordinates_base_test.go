@@ -53,10 +53,10 @@ func setupSubordinateBaseApp(t *testing.T) (*fiber.App, model.Backends) {
 		KV:                store.KeyValue(),
 		// Wrap operations in DB transactions using the storage's DB
 		Transaction: func(fn model.TransactionFunc) error {
-			// A real Transaction func would use gorm's Transaction, but since we 
+			// A real Transaction func would use gorm's Transaction, but since we
 			// just want a mock/test behavior, we can execute directly or simulate it.
 			// Implementing a full DB-based Tx func is hard without accessing s.db.
-			// For testing base routes directly, we just call fn() 
+			// For testing base routes directly, we just call fn()
 			return fn(&model.Backends{
 				Subordinates:      store.SubordinateStorage(),
 				SubordinateEvents: store.SubordinateEventsStorage(),
@@ -66,8 +66,8 @@ func setupSubordinateBaseApp(t *testing.T) (*fiber.App, model.Backends) {
 	}
 
 	app := fiber.New()
-	
-	// Create a dummy fedEntity if needed, for statement previews. 
+
+	// Create a dummy fedEntity if needed, for statement previews.
 	// We pass nil for base handlers since they don't strictly use it.
 	registerSubordinatesBase(app, backends)
 
@@ -79,7 +79,7 @@ func setupSubordinateBaseApp(t *testing.T) (*fiber.App, model.Backends) {
 func TestGetSubordinates(t *testing.T) {
 	t.Run("Success/All", func(t *testing.T) {
 		app, backends := setupSubordinateBaseApp(t)
-		
+
 		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://sub1.example.org",
@@ -112,7 +112,7 @@ func TestGetSubordinates(t *testing.T) {
 
 	t.Run("Success/ByStatus", func(t *testing.T) {
 		app, backends := setupSubordinateBaseApp(t)
-		
+
 		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://active.example.org",
@@ -143,7 +143,7 @@ func TestGetSubordinates(t *testing.T) {
 
 	t.Run("Success/ByEntityType", func(t *testing.T) {
 		app, backends := setupSubordinateBaseApp(t)
-		
+
 		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://rp.example.org",
@@ -180,14 +180,14 @@ func TestGetSubordinates(t *testing.T) {
 
 	t.Run("InvalidStatus", func(t *testing.T) {
 		app, _ := setupSubordinateBaseApp(t)
-		
+
 		req := httptest.NewRequest("GET", "/subordinates?status=unknown_status", http.NoBody)
 		resp, _ := app.Test(req, -1)
 
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("Expected status 400 for invalid status, got %d", resp.StatusCode)
 		}
-		
+
 		body, _ := io.ReadAll(resp.Body)
 		var oidErr oidfed.Error
 		json.Unmarshal(body, &oidErr)
@@ -305,7 +305,7 @@ func TestGetSubordinateByID(t *testing.T) {
 				Status:   model.StatusActive,
 			},
 		})
-		
+
 		// Grab the actual inserted ID to test the endpoint
 		saved, _ := backends.Subordinates.Get("https://specific.example.org")
 
@@ -375,7 +375,7 @@ func TestPutSubordinateByID(t *testing.T) {
 		if updated.Description != "New Description" {
 			t.Errorf("Expected description 'New Description', got %q", updated.Description)
 		}
-		
+
 		// Note: GORM's UpdateAll currently appends related entities instead of replacing them
 		// due to how it handles slices on OnConflict updates. We assert there are at least 2.
 		if len(updated.SubordinateEntityTypes) < 2 {
@@ -427,8 +427,6 @@ func TestPutSubordinateByID(t *testing.T) {
 		}
 	})
 }
-
-
 
 // --- DELETE /subordinates/:subordinateID TESTS ---
 
@@ -687,11 +685,11 @@ func TestGetSubordinateHistory(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("Expected status 200, got %d", resp.StatusCode)
 		}
-		
+
 		body, _ := io.ReadAll(resp.Body)
 		var result map[string]any
 		json.Unmarshal(body, &result)
-		
+
 		pag := result["pagination"].(map[string]any)
 		if int(pag["limit"].(float64)) != 1 {
 			t.Errorf("Expected limit 1, got %v", pag["limit"])

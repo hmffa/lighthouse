@@ -17,12 +17,12 @@ import (
 
 type mockTrustMarkSpecStore struct {
 	model.TrustMarkSpecStore
-	listFn                 func() ([]model.TrustMarkSpec, error)
-	createFn               func(spec *model.TrustMarkSpec) (*model.TrustMarkSpec, error)
-	getFn                  func(id string) (*model.TrustMarkSpec, error)
-	updateFn               func(id string, spec *model.TrustMarkSpec) (*model.TrustMarkSpec, error)
-	patchFn                func(id string, updates map[string]any) (*model.TrustMarkSpec, error)
-	deleteFn               func(id string) error
+	listFn   func() ([]model.TrustMarkSpec, error)
+	createFn func(spec *model.TrustMarkSpec) (*model.TrustMarkSpec, error)
+	getFn    func(id string) (*model.TrustMarkSpec, error)
+	updateFn func(id string, spec *model.TrustMarkSpec) (*model.TrustMarkSpec, error)
+	patchFn  func(id string, updates map[string]any) (*model.TrustMarkSpec, error)
+	deleteFn func(id string) error
 
 	listSubjectsFn        func(specID string, status *model.Status) ([]model.TrustMarkSubject, error)
 	createSubjectFn       func(specID string, subject *model.TrustMarkSubject) (*model.TrustMarkSubject, error)

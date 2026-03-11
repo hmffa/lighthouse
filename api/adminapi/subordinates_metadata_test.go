@@ -134,7 +134,7 @@ func TestPutSubordinateMetadata(t *testing.T) {
 		if updated.Metadata == nil {
 			t.Fatalf("Expected Metadata to be saved in DB, got nil")
 		}
-		
+
 		rpMeta := (*updated.Metadata).RelyingParty
 		if rpMeta.ClientName != "New App Name" {
 			t.Errorf("Expected 'New App Name', got: %+v", rpMeta.ClientName)
@@ -264,7 +264,7 @@ func TestPutSubordinateMetadataEntityType(t *testing.T) {
 			},
 			Metadata: &oidfed.Metadata{
 				Extra: map[string]any{
-					"old_type": map[string]any{"claim": "keep_me"},
+					"old_type":    map[string]any{"claim": "keep_me"},
 					"target_type": map[string]any{"claim": "delete_me"},
 				},
 			},
@@ -403,7 +403,7 @@ func TestDeleteSubordinateMetadataEntityType(t *testing.T) {
 
 		updated, _ := backends.Subordinates.Get("https://meta-type-delete.example.org")
 		extra := (*updated.Metadata).Extra
-		
+
 		if extra["delete_me"] != nil {
 			t.Errorf("Expected delete_me entity type to be entirely removed")
 		}
@@ -588,7 +588,7 @@ func TestDeleteSubordinateMetadataClaim(t *testing.T) {
 
 		updated, _ := backends.Subordinates.Get("https://meta-claim-delete.example.org")
 		target := (*updated.Metadata).Extra["target_type"].(map[string]any)
-		
+
 		if _, ok := target["delete_me"]; ok {
 			t.Errorf("Expected claim delete_me to be deleted")
 		}

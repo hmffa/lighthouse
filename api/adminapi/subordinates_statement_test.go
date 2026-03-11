@@ -51,11 +51,11 @@ func setupSubordinateStatementApp(t *testing.T) (*fiber.App, model.Backends) {
 	}
 
 	app := fiber.New()
-	
+
 	// registerSubordinateStatement takes the router, subordinate backend, KV, and the FederationEntity.
 	g := app.Group("/subordinates/:subordinateID/statement")
 	g.Get("/", handleGetSubordinateStatement(backends.Subordinates, backends.KV, mockFedEntity{}))
-	
+
 	return app, backends
 }
 
