@@ -3,7 +3,6 @@ package adminapi
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -110,20 +109,7 @@ func setupEntityConfigTestApp(
 	return app
 }
 
-// doRequest executes an HTTP request against a Fiber app and returns the
 // response plus the fully-read body.
-func doRequest(t *testing.T, app *fiber.App, req *http.Request) (*http.Response, []byte) {
-	t.Helper()
-	resp, err := app.Test(req, -1)
-	if err != nil {
-		t.Fatalf("Request %s %s failed: %v", req.Method, req.URL.Path, err)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Failed to read response body: %v", err)
-	}
-	return resp, body
-}
 
 // newStubFedEntity creates a mock FederationEntity that returns an empty payload.
 func newStubFedEntity() *mockFederationEntity {
