@@ -35,6 +35,7 @@ func newSubordinateTestStorage(t *testing.T) *storage.Storage {
 		t.Fatalf("Failed to create storage: %v", err)
 	}
 	t.Cleanup(func() {
+		store.Close()
 		os.RemoveAll(tempDir)
 	})
 	return store

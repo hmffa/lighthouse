@@ -1181,3 +1181,12 @@ func (s *TrustMarkSpecStorage) revokeInstancesForSubject(subjectID uint, entityI
 		}).Info("automatically revoked trust mark instances due to subject status change")
 	}
 }
+
+// Close closes the underlying database connection.
+func (s *Storage) Close() error {
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
