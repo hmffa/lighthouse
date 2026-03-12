@@ -18,7 +18,7 @@ func authMiddleware(users model.UsersStore) fiber.Handler {
 		// If no users are configured, allow access
 		count, err := users.Count()
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "server_error", "error_description": err.Error()})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "server_error", "error_description": "internal server error"})
 		}
 		if count == 0 {
 			return c.Next()
