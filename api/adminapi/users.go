@@ -5,6 +5,7 @@ import (
 
 	oidfed "github.com/go-oidfed/lib"
 	"github.com/gofiber/fiber/v2"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/go-oidfed/lighthouse/storage/model"
 )
@@ -17,7 +18,8 @@ func registerUsers(r fiber.Router, users model.UsersStore) {
 		"/", func(c *fiber.Ctx) error {
 			list, err := users.List()
 			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError(err.Error()))
+				log.WithError(err).Error("failed to list users")
+				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError("internal server error"))
 			}
 			return c.JSON(list)
 		},
@@ -43,7 +45,8 @@ func registerUsers(r fiber.Router, users model.UsersStore) {
 				if errors.As(err, &alreadyExistsError) {
 					return c.Status(fiber.StatusConflict).JSON(oidfed.ErrorInvalidRequest("user already exists"))
 				}
-				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError(err.Error()))
+				log.WithError(err).Error("failed to create user")
+				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError("internal server error"))
 			}
 			return c.Status(fiber.StatusCreated).JSON(u)
 		},
@@ -67,7 +70,8 @@ func registerUsers(r fiber.Router, users model.UsersStore) {
 				if errors.As(err, &notFoundError) {
 					return c.Status(fiber.StatusNotFound).JSON(oidfed.ErrorNotFound("user not found"))
 				}
-				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError(err.Error()))
+				log.WithError(err).Error("failed to update user")
+				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError("internal server error"))
 			}
 			return c.JSON(u)
 		},
@@ -82,7 +86,8 @@ func registerUsers(r fiber.Router, users model.UsersStore) {
 				if errors.As(err, &notFoundError) {
 					return c.Status(fiber.StatusNotFound).JSON(oidfed.ErrorNotFound("user not found"))
 				}
-				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError(err.Error()))
+				log.WithError(err).Error("failed to get user")
+				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError("internal server error"))
 			}
 			return c.JSON(u)
 		},
@@ -96,7 +101,8 @@ func registerUsers(r fiber.Router, users model.UsersStore) {
 				if errors.As(err, &notFoundError) {
 					return c.Status(fiber.StatusNotFound).JSON(oidfed.ErrorNotFound("user not found"))
 				}
-				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError(err.Error()))
+				log.WithError(err).Error("failed to delete user")
+				return c.Status(fiber.StatusInternalServerError).JSON(oidfed.ErrorServerError("internal server error"))
 			}
 			return c.SendStatus(fiber.StatusNoContent)
 		},
