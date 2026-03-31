@@ -1,0 +1,4 @@
+## 2024-05-24 - [CRITICAL] Insecure Error Message Exposure
+**Vulnerability:** The `fetch.go` endpoint (and others in the codebase) exposed detailed internal error messages directly to clients by including `err.Error()` in JSON responses (e.g., `oidfed.ErrorServerError(err.Error())`). This could leak sensitive internal application state, database details, or stack traces, facilitating further attacks (CWE-209).
+**Learning:** Returning raw Go errors in HTTP API responses is a common pattern that sacrifices security for debugging convenience. In a production environment, this information disclosure can be weaponized.
+**Prevention:** Always replace raw `err.Error()` calls in HTTP responses with generic, safe error messages like `"internal server error"`. Instead, use internal logging mechanisms (e.g., `log.WithError(err).Error("context")`) to capture the full error details securely on the server-side for debugging purposes.

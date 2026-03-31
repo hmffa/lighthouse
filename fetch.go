@@ -3,6 +3,7 @@ package lighthouse
 import (
 	"github.com/go-oidfed/lib/oidfedconst"
 	"github.com/gofiber/fiber/v2"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/go-oidfed/lib"
 
@@ -24,8 +25,9 @@ func (fed *LightHouse) AddFetchEndpoint(endpoint EndpointConf, store model.Subor
 			}
 			info, err := store.Get(sub)
 			if err != nil {
+				log.WithError(err).Error("failed to get from store")
 				ctx.Status(fiber.StatusInternalServerError)
-				return ctx.JSON(oidfed.ErrorServerError(err.Error()))
+				return ctx.JSON(oidfed.ErrorServerError("internal server error"))
 			}
 			if info == nil {
 				ctx.Status(fiber.StatusNotFound)
@@ -34,8 +36,9 @@ func (fed *LightHouse) AddFetchEndpoint(endpoint EndpointConf, store model.Subor
 			payload := fed.CreateSubordinateStatement(info)
 			jwt, err := fed.SignEntityStatement(payload)
 			if err != nil {
+				log.WithError(err).Error("failed to sign entity statement")
 				ctx.Status(fiber.StatusInternalServerError)
-				return ctx.JSON(oidfed.ErrorServerError(err.Error()))
+				return ctx.JSON(oidfed.ErrorServerError("internal server error"))
 			}
 			ctx.Set(fiber.HeaderContentType, oidfedconst.ContentTypeEntityStatement)
 			return ctx.Send(jwt)
