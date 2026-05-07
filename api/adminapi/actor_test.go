@@ -10,7 +10,8 @@ import (
 
 // setupActorTestApp creates a Fiber app with the actor middleware and a test endpoint
 // that returns the extracted actor value.
-func setupActorTestApp(cfg ActorConfig, preMiddleware ...fiber.Handler) *fiber.App {
+func setupActorTestApp(t *testing.T, cfg ActorConfig, preMiddleware ...fiber.Handler) *fiber.App {
+	t.Helper()
 	app := fiber.New()
 	for _, mw := range preMiddleware {
 		app.Use(mw)
@@ -39,7 +40,7 @@ func TestActorMiddleware_Defaults(t *testing.T) {
 
 	t.Run("EmptyConfig/DefaultsToBasicAuthAndXActor", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(ActorConfig{}, simulateAuthMiddleware("admin"))
+		app := setupActorTestApp(t, ActorConfig{}, simulateAuthMiddleware("admin"))
 
 		req := httptest.NewRequest("GET", "/test", http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -53,7 +54,7 @@ func TestActorMiddleware_Defaults(t *testing.T) {
 
 	t.Run("EmptyConfig/NoAuthNoHeader/EmptyActor", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(ActorConfig{})
+		app := setupActorTestApp(t, ActorConfig{})
 
 		req := httptest.NewRequest("GET", "/test", http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -70,7 +71,7 @@ func TestActorMiddleware_BasicAuthSource(t *testing.T) {
 
 	t.Run("AuthOnly/ReturnsUsername", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(
+		app := setupActorTestApp(t,
 			ActorConfig{Source: ActorSourceBasicAuth},
 			simulateAuthMiddleware("alice"),
 		)
@@ -86,7 +87,7 @@ func TestActorMiddleware_BasicAuthSource(t *testing.T) {
 
 	t.Run("HeaderOnly/FallsBackToHeader", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(ActorConfig{Source: ActorSourceBasicAuth})
+		app := setupActorTestApp(t, ActorConfig{Source: ActorSourceBasicAuth})
 
 		req := httptest.NewRequest("GET", "/test", http.NoBody)
 		req.Header.Set("X-Actor", "proxy-user")
@@ -100,7 +101,7 @@ func TestActorMiddleware_BasicAuthSource(t *testing.T) {
 
 	t.Run("BothSet/PrefersBasicAuth", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(
+		app := setupActorTestApp(t,
 			ActorConfig{Source: ActorSourceBasicAuth},
 			simulateAuthMiddleware("alice"),
 		)
@@ -121,7 +122,7 @@ func TestActorMiddleware_HeaderSource(t *testing.T) {
 
 	t.Run("HeaderOnly/ReturnsHeader", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(ActorConfig{Source: ActorSourceHeader})
+		app := setupActorTestApp(t, ActorConfig{Source: ActorSourceHeader})
 
 		req := httptest.NewRequest("GET", "/test", http.NoBody)
 		req.Header.Set("X-Actor", "proxy-user")
@@ -135,7 +136,7 @@ func TestActorMiddleware_HeaderSource(t *testing.T) {
 
 	t.Run("AuthOnly/FallsBackToAuth", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(
+		app := setupActorTestApp(t,
 			ActorConfig{Source: ActorSourceHeader},
 			simulateAuthMiddleware("alice"),
 		)
@@ -151,7 +152,7 @@ func TestActorMiddleware_HeaderSource(t *testing.T) {
 
 	t.Run("BothSet/PrefersHeader", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(
+		app := setupActorTestApp(t,
 			ActorConfig{Source: ActorSourceHeader},
 			simulateAuthMiddleware("alice"),
 		)
@@ -172,7 +173,7 @@ func TestActorMiddleware_CustomHeader(t *testing.T) {
 
 	t.Run("CustomHeader/Extracted", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(ActorConfig{Header: "X-Remote-User"})
+		app := setupActorTestApp(t, ActorConfig{Header: "X-Remote-User"})
 
 		req := httptest.NewRequest("GET", "/test", http.NoBody)
 		req.Header.Set("X-Remote-User", "custom-actor")
@@ -186,7 +187,7 @@ func TestActorMiddleware_CustomHeader(t *testing.T) {
 
 	t.Run("CustomHeader/DefaultHeaderIgnored", func(t *testing.T) {
 		t.Parallel()
-		app := setupActorTestApp(ActorConfig{Header: "X-Remote-User"})
+		app := setupActorTestApp(t, ActorConfig{Header: "X-Remote-User"})
 
 		req := httptest.NewRequest("GET", "/test", http.NoBody)
 		req.Header.Set("X-Actor", "wrong-actor")

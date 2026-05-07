@@ -45,7 +45,8 @@ func (m *mockAuthorityHintsStore) Delete(ident string) error {
 	return m.deleteFn(ident)
 }
 
-func setupAuthorityHintsTestApp(store smodel.AuthorityHintsStore) *fiber.App {
+func setupAuthorityHintsTestApp(t *testing.T, store smodel.AuthorityHintsStore) *fiber.App {
+	t.Helper()
 	app := fiber.New()
 	registerAuthorityHints(app, store)
 	return app
@@ -86,7 +87,7 @@ func TestAuthorityHintsList(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
 
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			listFn: func() ([]smodel.AuthorityHint, error) {
 				return []smodel.AuthorityHint{{ID: 1, EntityID: "https://ta.example", Description: "Trust anchor"}}, nil
 			},
@@ -111,7 +112,7 @@ func TestAuthorityHintsList(t *testing.T) {
 	t.Run("StoreError", func(t *testing.T) {
 		t.Parallel()
 
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			listFn: func() ([]smodel.AuthorityHint, error) {
 				return nil, errors.New("db down")
 			},
@@ -129,7 +130,7 @@ func TestAuthorityHintsCreate(t *testing.T) {
 	t.Run("SuccessInvalidatesCache", func(t *testing.T) {
 		var gotInput smodel.AddAuthorityHint
 		setEntityConfigurationCache(t, cacheValue)
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			createFn: func(item smodel.AddAuthorityHint) (*smodel.AuthorityHint, error) {
 				gotInput = item
 				return &smodel.AuthorityHint{ID: 10, EntityID: item.EntityID, Description: item.Description}, nil
@@ -160,7 +161,7 @@ func TestAuthorityHintsCreate(t *testing.T) {
 
 	t.Run("InvalidBodyKeepsCache", func(t *testing.T) {
 		setEntityConfigurationCache(t, cacheValue)
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			createFn: func(item smodel.AddAuthorityHint) (*smodel.AuthorityHint, error) {
 				t.Fatalf("create should not be called for invalid body")
 				return nil, nil
@@ -180,7 +181,7 @@ func TestAuthorityHintsCreate(t *testing.T) {
 
 	t.Run("ConflictKeepsCache", func(t *testing.T) {
 		setEntityConfigurationCache(t, cacheValue)
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			createFn: func(item smodel.AddAuthorityHint) (*smodel.AuthorityHint, error) {
 				return nil, smodel.AlreadyExistsError("duplicate authority hint")
 			},
@@ -204,7 +205,7 @@ func TestAuthorityHintsGet(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
 
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			getFn: func(ident string) (*smodel.AuthorityHint, error) {
 				if ident != "42" {
 					t.Fatalf("unexpected authority hint id %q", ident)
@@ -229,7 +230,7 @@ func TestAuthorityHintsGet(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
 		t.Parallel()
 
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			getFn: func(string) (*smodel.AuthorityHint, error) {
 				return nil, smodel.NotFoundError("missing")
 			},
@@ -248,7 +249,7 @@ func TestAuthorityHintsUpdate(t *testing.T) {
 		var gotID string
 		var gotInput smodel.AddAuthorityHint
 		setEntityConfigurationCache(t, cacheValue)
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			updateFn: func(ident string, item smodel.AddAuthorityHint) (*smodel.AuthorityHint, error) {
 				gotID = ident
 				gotInput = item
@@ -283,7 +284,7 @@ func TestAuthorityHintsUpdate(t *testing.T) {
 
 	t.Run("NotFoundKeepsCache", func(t *testing.T) {
 		setEntityConfigurationCache(t, cacheValue)
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			updateFn: func(string, smodel.AddAuthorityHint) (*smodel.AuthorityHint, error) {
 				return nil, smodel.NotFoundError("missing")
 			},
@@ -302,7 +303,7 @@ func TestAuthorityHintsUpdate(t *testing.T) {
 
 	t.Run("ConflictKeepsCache", func(t *testing.T) {
 		setEntityConfigurationCache(t, cacheValue)
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			updateFn: func(string, smodel.AddAuthorityHint) (*smodel.AuthorityHint, error) {
 				return nil, smodel.AlreadyExistsError("duplicate authority hint")
 			},
@@ -326,7 +327,7 @@ func TestAuthorityHintsDelete(t *testing.T) {
 	t.Run("SuccessInvalidatesCache", func(t *testing.T) {
 		var gotID string
 		setEntityConfigurationCache(t, cacheValue)
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			deleteFn: func(ident string) error {
 				gotID = ident
 				return nil
@@ -344,7 +345,7 @@ func TestAuthorityHintsDelete(t *testing.T) {
 
 	t.Run("NotFoundKeepsCache", func(t *testing.T) {
 		setEntityConfigurationCache(t, cacheValue)
-		app := setupAuthorityHintsTestApp(&mockAuthorityHintsStore{
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
 			deleteFn: func(string) error {
 				return smodel.NotFoundError("missing")
 			},

@@ -3,7 +3,6 @@ package adminapi
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,48 +20,22 @@ func setupUsersApp(t *testing.T, store model.UsersStore) *fiber.App {
 	return app
 }
 
-// doJSONRequest is a helper to execute a request against the test app and return the response.
-func doJSONRequest(t *testing.T, app *fiber.App, method, path string, body any) *http.Response {
+// newJSONRequest creates an httptest.NewRequest with an optional JSON body.
+// Use this to build requests for doRequest when the body needs to be marshaled from a Go value.
+func newJSONRequest(t *testing.T, method, path string, body any) *http.Request {
 	t.Helper()
-	var reqBody io.Reader
+	var req *http.Request
 	if body != nil {
 		b, err := json.Marshal(body)
 		if err != nil {
 			t.Fatalf("failed to marshal request body: %v", err)
 		}
-		reqBody = bytes.NewReader(b)
-	}
-	req := httptest.NewRequest(method, path, reqBody)
-	if body != nil {
+		req = httptest.NewRequest(method, path, bytes.NewReader(b))
 		req.Header.Set("Content-Type", "application/json")
+	} else {
+		req = httptest.NewRequest(method, path, http.NoBody)
 	}
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatalf("app.Test failed: %v", err)
-	}
-	return resp
-}
-
-// decodeJSON reads and decodes a JSON response body.
-func decodeJSON(t *testing.T, resp *http.Response) map[string]any {
-	t.Helper()
-	defer resp.Body.Close()
-	var result map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		t.Fatalf("failed to decode JSON response: %v", err)
-	}
-	return result
-}
-
-// decodeJSONArray reads and decodes a JSON array response body.
-func decodeJSONArray(t *testing.T, resp *http.Response) []any {
-	t.Helper()
-	defer resp.Body.Close()
-	var result []any
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		t.Fatalf("failed to decode JSON array response: %v", err)
-	}
-	return result
+	return req
 }
 
 // --- Test: GET /api/v1/admin/users/ ---
@@ -77,10 +50,14 @@ func TestListUsers(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "GET", "/api/v1/admin/users/", nil)
-		assertStatus(t, resp, fiber.StatusOK)
+		req := newJSONRequest(t, "GET", "/api/v1/admin/users/", nil)
+		resp, body := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusOK)
 
-		list := decodeJSONArray(t, resp)
+		var list []any
+		if err := json.Unmarshal(body, &list); err != nil {
+			t.Fatalf("failed to decode JSON array response: %v", err)
+		}
 		if len(list) != 0 {
 			t.Errorf("Expected empty list, got %d items", len(list))
 		}
@@ -97,10 +74,14 @@ func TestListUsers(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "GET", "/api/v1/admin/users/", http.NoBody)
-		assertStatus(t, resp, fiber.StatusOK)
+		req := newJSONRequest(t, "GET", "/api/v1/admin/users/", nil)
+		resp, body := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusOK)
 
-		list := decodeJSONArray(t, resp)
+		var list []any
+		if err := json.Unmarshal(body, &list); err != nil {
+			t.Fatalf("failed to decode JSON array response: %v", err)
+		}
 		if len(list) != 2 {
 			t.Errorf("Expected 2 users, got %d", len(list))
 		}
@@ -114,12 +95,16 @@ func TestListUsers(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "GET", "/api/v1/admin/users/", nil)
-		assertStatus(t, resp, fiber.StatusInternalServerError)
+		req := newJSONRequest(t, "GET", "/api/v1/admin/users/", nil)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusInternalServerError)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "server_error" {
-			t.Errorf("Expected error 'server_error', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "server_error" {
+			t.Errorf("Expected error 'server_error', got '%s'", result["error"])
 		}
 	})
 }
@@ -142,19 +127,23 @@ func TestCreateUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "POST", "/api/v1/admin/users/", map[string]string{
+		req := newJSONRequest(t, "POST", "/api/v1/admin/users/", map[string]string{
 			"username":     "alice",
 			"password":     "strongpass",
 			"display_name": "Alice",
 		})
-		assertStatus(t, resp, fiber.StatusCreated)
+		resp, body := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusCreated)
 
-		body := decodeJSON(t, resp)
-		if body["username"] != "alice" {
-			t.Errorf("Expected username 'alice', got '%s'", body["username"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
 		}
-		if body["display_name"] != "Alice" {
-			t.Errorf("Expected display_name 'Alice', got '%s'", body["display_name"])
+		if result["username"] != "alice" {
+			t.Errorf("Expected username 'alice', got '%s'", result["username"])
+		}
+		if result["display_name"] != "Alice" {
+			t.Errorf("Expected display_name 'Alice', got '%s'", result["display_name"])
 		}
 	})
 
@@ -162,14 +151,18 @@ func TestCreateUser(t *testing.T) {
 		t.Parallel()
 		store := &mockUsersStore{}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "POST", "/api/v1/admin/users/", map[string]string{
+		req := newJSONRequest(t, "POST", "/api/v1/admin/users/", map[string]string{
 			"password": "strongpass",
 		})
-		assertStatus(t, resp, fiber.StatusBadRequest)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusBadRequest)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "invalid_request" {
-			t.Errorf("Expected error 'invalid_request', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "invalid_request" {
+			t.Errorf("Expected error 'invalid_request', got '%s'", result["error"])
 		}
 	})
 
@@ -177,14 +170,18 @@ func TestCreateUser(t *testing.T) {
 		t.Parallel()
 		store := &mockUsersStore{}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "POST", "/api/v1/admin/users/", map[string]string{
+		req := newJSONRequest(t, "POST", "/api/v1/admin/users/", map[string]string{
 			"username": "alice",
 		})
-		assertStatus(t, resp, fiber.StatusBadRequest)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusBadRequest)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "invalid_request" {
-			t.Errorf("Expected error 'invalid_request', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "invalid_request" {
+			t.Errorf("Expected error 'invalid_request', got '%s'", result["error"])
 		}
 	})
 
@@ -192,8 +189,9 @@ func TestCreateUser(t *testing.T) {
 		t.Parallel()
 		store := &mockUsersStore{}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "POST", "/api/v1/admin/users/", map[string]string{})
-		assertStatus(t, resp, fiber.StatusBadRequest)
+		req := newJSONRequest(t, "POST", "/api/v1/admin/users/", map[string]string{})
+		resp, _ := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
 	t.Run("InvalidJSON", func(t *testing.T) {
@@ -203,11 +201,8 @@ func TestCreateUser(t *testing.T) {
 
 		req := httptest.NewRequest("POST", "/api/v1/admin/users/", bytes.NewReader([]byte("not json")))
 		req.Header.Set("Content-Type", "application/json")
-		resp, err := app.Test(req)
-		if err != nil {
-			t.Fatalf("app.Test failed: %v", err)
-		}
-		assertStatus(t, resp, fiber.StatusBadRequest)
+		resp, _ := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
 	t.Run("ConflictAlreadyExists", func(t *testing.T) {
@@ -218,15 +213,19 @@ func TestCreateUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "POST", "/api/v1/admin/users/", map[string]string{
+		req := newJSONRequest(t, "POST", "/api/v1/admin/users/", map[string]string{
 			"username": "alice",
 			"password": "strongpass",
 		})
-		assertStatus(t, resp, fiber.StatusConflict)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusConflict)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "invalid_request" {
-			t.Errorf("Expected error 'invalid_request', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "invalid_request" {
+			t.Errorf("Expected error 'invalid_request', got '%s'", result["error"])
 		}
 	})
 
@@ -238,15 +237,19 @@ func TestCreateUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "POST", "/api/v1/admin/users/", map[string]string{
+		req := newJSONRequest(t, "POST", "/api/v1/admin/users/", map[string]string{
 			"username": "alice",
 			"password": "strongpass",
 		})
-		assertStatus(t, resp, fiber.StatusInternalServerError)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusInternalServerError)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "server_error" {
-			t.Errorf("Expected error 'server_error', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "server_error" {
+			t.Errorf("Expected error 'server_error', got '%s'", result["error"])
 		}
 	})
 }
@@ -269,15 +272,19 @@ func TestGetUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "GET", "/api/v1/admin/users/alice", nil)
-		assertStatus(t, resp, fiber.StatusOK)
+		req := newJSONRequest(t, "GET", "/api/v1/admin/users/alice", nil)
+		resp, body := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusOK)
 
-		body := decodeJSON(t, resp)
-		if body["username"] != "alice" {
-			t.Errorf("Expected username 'alice', got '%s'", body["username"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
 		}
-		if body["display_name"] != "Alice" {
-			t.Errorf("Expected display_name 'Alice', got '%s'", body["display_name"])
+		if result["username"] != "alice" {
+			t.Errorf("Expected username 'alice', got '%s'", result["username"])
+		}
+		if result["display_name"] != "Alice" {
+			t.Errorf("Expected display_name 'Alice', got '%s'", result["display_name"])
 		}
 	})
 
@@ -289,12 +296,16 @@ func TestGetUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "GET", "/api/v1/admin/users/unknown", nil)
-		assertStatus(t, resp, fiber.StatusNotFound)
+		req := newJSONRequest(t, "GET", "/api/v1/admin/users/unknown", nil)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusNotFound)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "not_found" {
-			t.Errorf("Expected error 'not_found', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "not_found" {
+			t.Errorf("Expected error 'not_found', got '%s'", result["error"])
 		}
 	})
 
@@ -306,12 +317,16 @@ func TestGetUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "GET", "/api/v1/admin/users/alice", nil)
-		assertStatus(t, resp, fiber.StatusInternalServerError)
+		req := newJSONRequest(t, "GET", "/api/v1/admin/users/alice", nil)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusInternalServerError)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "server_error" {
-			t.Errorf("Expected error 'server_error', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "server_error" {
+			t.Errorf("Expected error 'server_error', got '%s'", result["error"])
 		}
 	})
 }
@@ -338,14 +353,18 @@ func TestUpdateUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "PUT", "/api/v1/admin/users/alice", map[string]string{
+		req := newJSONRequest(t, "PUT", "/api/v1/admin/users/alice", map[string]string{
 			"display_name": "Alice Updated",
 		})
-		assertStatus(t, resp, fiber.StatusOK)
+		resp, body := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusOK)
 
-		body := decodeJSON(t, resp)
-		if body["display_name"] != "Alice Updated" {
-			t.Errorf("Expected display_name 'Alice Updated', got '%s'", body["display_name"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["display_name"] != "Alice Updated" {
+			t.Errorf("Expected display_name 'Alice Updated', got '%s'", result["display_name"])
 		}
 	})
 
@@ -365,10 +384,11 @@ func TestUpdateUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "PUT", "/api/v1/admin/users/alice", map[string]string{
+		req := newJSONRequest(t, "PUT", "/api/v1/admin/users/alice", map[string]string{
 			"password": "newpass123",
 		})
-		assertStatus(t, resp, fiber.StatusOK)
+		resp, _ := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusOK)
 		if !updateCalled {
 			t.Error("Expected Update to be called")
 		}
@@ -389,14 +409,18 @@ func TestUpdateUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "PUT", "/api/v1/admin/users/alice", map[string]any{
+		req := newJSONRequest(t, "PUT", "/api/v1/admin/users/alice", map[string]any{
 			"disabled": true,
 		})
-		assertStatus(t, resp, fiber.StatusOK)
+		resp, body := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusOK)
 
-		body := decodeJSON(t, resp)
-		if body["disabled"] != true {
-			t.Errorf("Expected disabled true, got %v", body["disabled"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["disabled"] != true {
+			t.Errorf("Expected disabled true, got %v", result["disabled"])
 		}
 	})
 
@@ -408,14 +432,18 @@ func TestUpdateUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "PUT", "/api/v1/admin/users/unknown", map[string]string{
+		req := newJSONRequest(t, "PUT", "/api/v1/admin/users/unknown", map[string]string{
 			"display_name": "Test",
 		})
-		assertStatus(t, resp, fiber.StatusNotFound)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusNotFound)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "not_found" {
-			t.Errorf("Expected error 'not_found', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "not_found" {
+			t.Errorf("Expected error 'not_found', got '%s'", result["error"])
 		}
 	})
 
@@ -426,11 +454,8 @@ func TestUpdateUser(t *testing.T) {
 
 		req := httptest.NewRequest("PUT", "/api/v1/admin/users/alice", bytes.NewReader([]byte("not json")))
 		req.Header.Set("Content-Type", "application/json")
-		resp, err := app.Test(req)
-		if err != nil {
-			t.Fatalf("app.Test failed: %v", err)
-		}
-		assertStatus(t, resp, fiber.StatusBadRequest)
+		resp, _ := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
 	t.Run("InternalError", func(t *testing.T) {
@@ -441,14 +466,18 @@ func TestUpdateUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "PUT", "/api/v1/admin/users/alice", map[string]string{
+		req := newJSONRequest(t, "PUT", "/api/v1/admin/users/alice", map[string]string{
 			"display_name": "Test",
 		})
-		assertStatus(t, resp, fiber.StatusInternalServerError)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusInternalServerError)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "server_error" {
-			t.Errorf("Expected error 'server_error', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "server_error" {
+			t.Errorf("Expected error 'server_error', got '%s'", result["error"])
 		}
 	})
 }
@@ -470,8 +499,9 @@ func TestDeleteUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "DELETE", "/api/v1/admin/users/alice", nil)
-		assertStatus(t, resp, fiber.StatusNoContent)
+		req := newJSONRequest(t, "DELETE", "/api/v1/admin/users/alice", nil)
+		resp, _ := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusNoContent)
 
 		if !deleteCalled {
 			t.Error("Expected Delete to be called")
@@ -486,12 +516,16 @@ func TestDeleteUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "DELETE", "/api/v1/admin/users/unknown", nil)
-		assertStatus(t, resp, fiber.StatusNotFound)
+		req := newJSONRequest(t, "DELETE", "/api/v1/admin/users/unknown", nil)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusNotFound)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "not_found" {
-			t.Errorf("Expected error 'not_found', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "not_found" {
+			t.Errorf("Expected error 'not_found', got '%s'", result["error"])
 		}
 	})
 
@@ -503,12 +537,16 @@ func TestDeleteUser(t *testing.T) {
 			},
 		}
 		app := setupUsersApp(t, store)
-		resp := doJSONRequest(t, app, "DELETE", "/api/v1/admin/users/alice", nil)
-		assertStatus(t, resp, fiber.StatusInternalServerError)
+		req := newJSONRequest(t, "DELETE", "/api/v1/admin/users/alice", nil)
+		resp, body := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusInternalServerError)
 
-		body := decodeJSON(t, resp)
-		if body["error"] != "server_error" {
-			t.Errorf("Expected error 'server_error', got '%s'", body["error"])
+		var result map[string]any
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatalf("failed to decode JSON response: %v", err)
+		}
+		if result["error"] != "server_error" {
+			t.Errorf("Expected error 'server_error', got '%s'", result["error"])
 		}
 	})
 }
@@ -538,8 +576,9 @@ func TestUsersWithAuthMiddleware(t *testing.T) {
 			},
 		}
 		app := newAppWithAuth(store)
-		resp := doJSONRequest(t, app, "GET", "/api/v1/admin/users/", nil)
-		assertStatus(t, resp, fiber.StatusOK)
+		req := newJSONRequest(t, "GET", "/api/v1/admin/users/", nil)
+		resp, _ := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusOK)
 	})
 
 	t.Run("WithUsers_RequiresAuth", func(t *testing.T) {
@@ -550,8 +589,9 @@ func TestUsersWithAuthMiddleware(t *testing.T) {
 			},
 		}
 		app := newAppWithAuth(store)
-		resp := doJSONRequest(t, app, "GET", "/api/v1/admin/users/", nil)
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		req := newJSONRequest(t, "GET", "/api/v1/admin/users/", nil)
+		resp, _ := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("WithUsers_AuthenticatedAccess", func(t *testing.T) {
@@ -574,11 +614,8 @@ func TestUsersWithAuthMiddleware(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/api/v1/admin/users/", http.NoBody)
 		req.Header.Set("Authorization", basicAuthHeader("admin", "pass"))
-		resp, err := app.Test(req)
-		if err != nil {
-			t.Fatalf("app.Test failed: %v", err)
-		}
-		assertStatus(t, resp, fiber.StatusOK)
+		resp, _ := doRequest(t, app, req)
+		requireStatus(t, resp, http.StatusOK)
 	})
 
 	t.Run("WithUsers_CreateRequiresAuth", func(t *testing.T) {
@@ -589,10 +626,11 @@ func TestUsersWithAuthMiddleware(t *testing.T) {
 			},
 		}
 		app := newAppWithAuth(store)
-		resp := doJSONRequest(t, app, "POST", "/api/v1/admin/users/", map[string]string{
+		req := newJSONRequest(t, "POST", "/api/v1/admin/users/", map[string]string{
 			"username": "newuser",
 			"password": "pass",
 		})
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		resp, _ := doRequest(t, app, req)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 }

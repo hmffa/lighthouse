@@ -104,7 +104,8 @@ func (m *mockStatsStorageBackend) ExportJSON(from, to time.Time, w io.Writer) er
 	return m.exportJSONFn(from, to, w)
 }
 
-func setupStatsTestApp(store model.StatsStorageBackend) *fiber.App {
+func setupStatsTestApp(t *testing.T, store model.StatsStorageBackend) *fiber.App {
+	t.Helper()
 	app := fiber.New()
 	NewStatsAPI(store).RegisterRoutes(app.Group("/stats"))
 	return app
@@ -118,7 +119,7 @@ func TestStatsAPISummary(t *testing.T) {
 
 		var gotFrom time.Time
 		var gotTo time.Time
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getSummaryFn: func(from, to time.Time) (*istats.Summary, error) {
 				gotFrom = from
 				gotTo = to
@@ -145,7 +146,7 @@ func TestStatsAPISummary(t *testing.T) {
 
 		var gotFrom time.Time
 		var gotTo time.Time
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getSummaryFn: func(from, to time.Time) (*istats.Summary, error) {
 				gotFrom = from
 				gotTo = to
@@ -166,7 +167,7 @@ func TestStatsAPISummary(t *testing.T) {
 	t.Run("StoreError", func(t *testing.T) {
 		t.Parallel()
 
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getSummaryFn: func(from, to time.Time) (*istats.Summary, error) {
 				return nil, io.ErrUnexpectedEOF
 			},
@@ -187,7 +188,7 @@ func TestStatsAPITopEndpoints(t *testing.T) {
 		var gotFrom time.Time
 		var gotTo time.Time
 		var gotLimit int
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getTopEndpointsFn: func(from, to time.Time, limit int) ([]istats.TopEntry, error) {
 				gotFrom = from
 				gotTo = to
@@ -219,7 +220,7 @@ func TestStatsAPITopEndpoints(t *testing.T) {
 		t.Parallel()
 
 		var gotLimit int
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getTopEndpointsFn: func(from, to time.Time, limit int) ([]istats.TopEntry, error) {
 				gotLimit = limit
 				return []istats.TopEntry{}, nil
@@ -242,7 +243,7 @@ func TestStatsAPITopBreakdowns(t *testing.T) {
 		t.Parallel()
 
 		var gotLimit int
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getTopUserAgentsFn: func(from, to time.Time, limit int) ([]istats.TopEntry, error) {
 				gotLimit = limit
 				return []istats.TopEntry{{Value: "curl/8.0", Count: 5}}, nil
@@ -263,7 +264,7 @@ func TestStatsAPITopBreakdowns(t *testing.T) {
 	t.Run("Clients", func(t *testing.T) {
 		t.Parallel()
 
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getTopClientsFn: func(from, to time.Time, limit int) ([]istats.TopEntry, error) {
 				return []istats.TopEntry{{Value: "127.0.0.1", Count: 4}}, nil
 			},
@@ -280,7 +281,7 @@ func TestStatsAPITopBreakdowns(t *testing.T) {
 	t.Run("Countries", func(t *testing.T) {
 		t.Parallel()
 
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getTopCountriesFn: func(from, to time.Time, limit int) ([]istats.TopEntry, error) {
 				return []istats.TopEntry{{Value: "SE", Count: 3}}, nil
 			},
@@ -299,7 +300,7 @@ func TestStatsAPITopBreakdowns(t *testing.T) {
 
 		var gotEndpoint string
 		var gotLimit int
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getTopQueryParamsFn: func(from, to time.Time, endpoint string, limit int) ([]istats.TopEntry, error) {
 				gotEndpoint = endpoint
 				gotLimit = limit
@@ -327,7 +328,7 @@ func TestStatsAPITimeSeriesLatencyAndDaily(t *testing.T) {
 
 		var gotEndpoint string
 		var gotInterval istats.Interval
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getTimeSeriesFn: func(from, to time.Time, endpoint string, interval istats.Interval) ([]istats.TimeSeriesPoint, error) {
 				gotEndpoint = endpoint
 				gotInterval = interval
@@ -350,7 +351,7 @@ func TestStatsAPITimeSeriesLatencyAndDaily(t *testing.T) {
 		t.Parallel()
 
 		var gotInterval istats.Interval
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getTimeSeriesFn: func(from, to time.Time, endpoint string, interval istats.Interval) ([]istats.TimeSeriesPoint, error) {
 				gotInterval = interval
 				return []istats.TimeSeriesPoint{}, nil
@@ -369,7 +370,7 @@ func TestStatsAPITimeSeriesLatencyAndDaily(t *testing.T) {
 		t.Parallel()
 
 		var gotEndpoint string
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getLatencyFn: func(from, to time.Time, endpoint string) (*istats.LatencyStats, error) {
 				gotEndpoint = endpoint
 				return &istats.LatencyStats{P95Ms: 120, AvgMs: 45.5}, nil
@@ -392,7 +393,7 @@ func TestStatsAPITimeSeriesLatencyAndDaily(t *testing.T) {
 
 		var gotFrom time.Time
 		var gotTo time.Time
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			getDailyStatsFn: func(from, to time.Time) ([]istats.DailyStats, error) {
 				gotFrom = from
 				gotTo = to
@@ -420,7 +421,7 @@ func TestStatsAPIExport(t *testing.T) {
 
 		var jsonCalls int
 		var csvCalls int
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			exportCSVFn: func(from, to time.Time, w io.Writer) error {
 				csvCalls++
 				return nil
@@ -454,7 +455,7 @@ func TestStatsAPIExport(t *testing.T) {
 
 		var jsonCalls int
 		var csvCalls int
-		app := setupStatsTestApp(&mockStatsStorageBackend{
+		app := setupStatsTestApp(t, &mockStatsStorageBackend{
 			exportCSVFn: func(from, to time.Time, w io.Writer) error {
 				csvCalls++
 				_, err := io.WriteString(w, "endpoint,count\nfetch,9\n")

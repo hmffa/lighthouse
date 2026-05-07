@@ -105,7 +105,7 @@ func TestParseBasicAuth(t *testing.T) {
 		app.Get("/test", func(c *fiber.Ctx) error {
 			username, password, ok := parseBasicAuth(c)
 			if !ok {
-				return c.SendStatus(fiber.StatusUnauthorized)
+				return c.SendStatus(http.StatusUnauthorized)
 			}
 			return c.JSON(fiber.Map{"username": username, "password": password})
 		})
@@ -121,7 +121,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("HeaderWithoutBasicPrefix", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("InvalidBase64Encoding", func(t *testing.T) {
@@ -147,7 +147,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("MissingColonInDecodedCredentials", func(t *testing.T) {
@@ -161,7 +161,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("ValidCredentials", func(t *testing.T) {
@@ -174,7 +174,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusOK)
+		assertStatus(t, resp, http.StatusOK)
 		body := readJSONFromHTTP(t, resp.Body)
 		if body["username"] != "admin" {
 			t.Errorf("Expected username 'admin', got '%s'", body["username"])
@@ -194,7 +194,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusOK)
+		assertStatus(t, resp, http.StatusOK)
 		body := readJSONFromHTTP(t, resp.Body)
 		if body["username"] != "admin" {
 			t.Errorf("Expected username 'admin', got '%s'", body["username"])
@@ -214,7 +214,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusOK)
+		assertStatus(t, resp, http.StatusOK)
 		body := readJSONFromHTTP(t, resp.Body)
 		if body["username"] != "" {
 			t.Errorf("Expected empty username, got '%s'", body["username"])
@@ -231,7 +231,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusOK)
+		assertStatus(t, resp, http.StatusOK)
 		body := readJSONFromHTTP(t, resp.Body)
 		if body["username"] != "admin" {
 			t.Errorf("Expected username 'admin', got '%s'", body["username"])
@@ -252,7 +252,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("EmptyAuthorizationHeader", func(t *testing.T) {
@@ -265,7 +265,7 @@ func TestParseBasicAuth(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("BasicPrefixOnly", func(t *testing.T) {
@@ -279,7 +279,7 @@ func TestParseBasicAuth(t *testing.T) {
 		}
 
 		// "Basic " with empty payload should fail base64 decode or missing colon
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 }
 
@@ -290,7 +290,7 @@ func TestAuthMiddleware(t *testing.T) {
 		app := fiber.New()
 		app.Use(authMiddleware(store))
 		app.Get("/test", func(c *fiber.Ctx) error {
-			return c.SendStatus(fiber.StatusOK)
+			return c.SendStatus(http.StatusOK)
 		})
 		return app
 	}
@@ -309,7 +309,7 @@ func TestAuthMiddleware(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusInternalServerError)
 		body := readJSONFromHTTP(t, resp.Body)
 		if body["error"] != "server_error" {
 			t.Errorf("Expected error 'server_error', got '%s'", body["error"])
@@ -330,7 +330,7 @@ func TestAuthMiddleware(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusOK)
+		assertStatus(t, resp, http.StatusOK)
 	})
 
 	t.Run("CountGreaterThanZero_MissingAuth", func(t *testing.T) {
@@ -347,7 +347,7 @@ func TestAuthMiddleware(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 
 		wwwAuth := resp.Header.Get("WWW-Authenticate")
 		if wwwAuth != "Basic realm=admin" {
@@ -381,7 +381,7 @@ func TestAuthMiddleware(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusUnauthorized)
+		assertStatus(t, resp, http.StatusUnauthorized)
 
 		wwwAuth := resp.Header.Get("WWW-Authenticate")
 		if wwwAuth != "Basic realm=admin" {
@@ -415,7 +415,7 @@ func TestAuthMiddleware(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusOK)
+		assertStatus(t, resp, http.StatusOK)
 	})
 
 	t.Run("CountGreaterThanZero_DisabledUser", func(t *testing.T) {
@@ -439,7 +439,7 @@ func TestAuthMiddleware(t *testing.T) {
 		}
 
 		// Currently allowed because authMiddleware only checks Authenticate error
-		assertStatus(t, resp, fiber.StatusOK)
+		assertStatus(t, resp, http.StatusOK)
 	})
 
 	t.Run("MultipleUsersInStore", func(t *testing.T) {
@@ -463,6 +463,6 @@ func TestAuthMiddleware(t *testing.T) {
 			t.Fatalf("app.Test failed: %v", err)
 		}
 
-		assertStatus(t, resp, fiber.StatusOK)
+		assertStatus(t, resp, http.StatusOK)
 	})
 }

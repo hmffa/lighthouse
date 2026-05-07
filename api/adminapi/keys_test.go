@@ -1279,7 +1279,7 @@ func TestPostKMSRotateAll(t *testing.T) {
 		req := httptest.NewRequest("POST", "/kms/rotate", http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatus(t, resp, fiber.StatusAccepted)
+		assertStatus(t, resp, http.StatusAccepted)
 	})
 
 	t.Run("NotSupportedWhenKeysNil", func(t *testing.T) {

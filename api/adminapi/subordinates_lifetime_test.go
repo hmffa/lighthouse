@@ -57,17 +57,13 @@ func TestSubordinateLifetime(t *testing.T) {
 		putReq.Header.Set("Content-Type", "application/json")
 		putResp, _ := doRequest(t, app, putReq)
 
-		if putResp.StatusCode != http.StatusOK {
-			t.Fatalf("Expected status 200, got %d", putResp.StatusCode)
-		}
+		requireStatus(t, putResp, http.StatusOK)
 
 		// GET to verify update
 		getReq := httptest.NewRequest("GET", "/subordinates/lifetime", http.NoBody)
 		getResp, b := doRequest(t, app, getReq)
 
-		if getResp.StatusCode != http.StatusOK {
-			t.Fatalf("Expected GET status 200, got %d", getResp.StatusCode)
-		}
+		requireStatus(t, getResp, http.StatusOK)
 
 		var lifetime int
 		if err := json.Unmarshal(b, &lifetime); err != nil {
