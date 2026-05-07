@@ -103,7 +103,7 @@ func TestGetSubordinateMetadata(t *testing.T) {
 		req := httptest.NewRequest("GET", "/subordinates/9999/metadata", http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -194,7 +194,7 @@ func TestPutSubordinateMetadata(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -245,7 +245,7 @@ func TestGetSubordinateMetadataEntityType(t *testing.T) {
 		app, _ := setupSubordinateMetadataApp(t)
 		req := httptest.NewRequest("GET", "/subordinates/9999/metadata/custom", http.NoBody)
 		resp, _ := doRequest(t, app, req)
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("NotFound/EntityType", func(t *testing.T) {
@@ -310,7 +310,11 @@ func TestPutSubordinateMetadataEntityType(t *testing.T) {
 		extra := updated.Metadata.Extra
 
 		if extra["old_type"] == nil {
-			t.Errorf("Expected non-target entity types to be untouched")
+			t.Fatal("Expected non-target entity types to be untouched")
+		}
+		oldType := extra["old_type"].(map[string]any)
+		if oldType["claim"] != "keep_me" {
+			t.Errorf("Expected old_type claim to be 'keep_me', got %v", oldType["claim"])
 		}
 
 		target := extra["target_type"].(map[string]any)
@@ -446,7 +450,11 @@ func TestDeleteSubordinateMetadataEntityType(t *testing.T) {
 			t.Errorf("Expected delete_me entity type to be entirely removed")
 		}
 		if extra["keep_me"] == nil {
-			t.Errorf("Expected keep_me entity type to be safely retained")
+			t.Fatal("Expected keep_me entity type to be safely retained")
+		}
+		kept := extra["keep_me"].(map[string]any)
+		if kept["claim"] != "stay" {
+			t.Errorf("Expected keep_me claim to be 'stay', got %v", kept["claim"])
 		}
 	})
 
@@ -455,7 +463,7 @@ func TestDeleteSubordinateMetadataEntityType(t *testing.T) {
 		app, _ := setupSubordinateMetadataApp(t)
 		req := httptest.NewRequest("DELETE", "/subordinates/9999/metadata/delete_me", http.NoBody)
 		resp, _ := doRequest(t, app, req)
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("NotFound/EntityType", func(t *testing.T) {

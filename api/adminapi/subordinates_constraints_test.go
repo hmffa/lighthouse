@@ -202,7 +202,7 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 		app, _ := setupSubordinateConstraintsApp(t)
 		req := httptest.NewRequest("GET", "/subordinates/9999/constraints", http.NoBody)
 		resp, _ := doRequest(t, app, req)
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -330,7 +330,10 @@ func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
 			t.Errorf("Expected max_path_length to be nil after deletion")
 		}
 		if updated.Constraints.AllowedEntityTypes == nil {
-			t.Errorf("Expected AllowedEntityTypes to be retained")
+			t.Fatal("Expected AllowedEntityTypes to be retained")
+		}
+		if len(updated.Constraints.AllowedEntityTypes) != 1 || updated.Constraints.AllowedEntityTypes[0] != "keep_me" {
+			t.Errorf("Expected AllowedEntityTypes [keep_me], got %v", updated.Constraints.AllowedEntityTypes)
 		}
 	})
 }
@@ -425,7 +428,10 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 			t.Errorf("Expected naming constraints to be set")
 		}
 		if updated.Constraints.AllowedEntityTypes == nil {
-			t.Errorf("Expected sibling constraints to be untouched")
+			t.Fatal("Expected sibling constraints to be untouched")
+		}
+		if len(updated.Constraints.AllowedEntityTypes) != 1 || updated.Constraints.AllowedEntityTypes[0] != "keep_me" {
+			t.Errorf("Expected AllowedEntityTypes [keep_me], got %v", updated.Constraints.AllowedEntityTypes)
 		}
 	})
 
@@ -462,7 +468,10 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 			t.Errorf("Expected naming constraints to be nil after deletion")
 		}
 		if updated.Constraints.AllowedEntityTypes == nil {
-			t.Errorf("Expected AllowedEntityTypes to be retained")
+			t.Fatal("Expected AllowedEntityTypes to be retained")
+		}
+		if len(updated.Constraints.AllowedEntityTypes) != 1 || updated.Constraints.AllowedEntityTypes[0] != "keep_me" {
+			t.Errorf("Expected AllowedEntityTypes [keep_me], got %v", updated.Constraints.AllowedEntityTypes)
 		}
 	})
 }
@@ -557,7 +566,10 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 			t.Errorf("Expected allowed entity types to be replaced")
 		}
 		if updated.Constraints.MaxPathLength == nil {
-			t.Errorf("Expected sibling constraints to be untouched")
+			t.Fatal("Expected sibling constraints to be untouched")
+		}
+		if *updated.Constraints.MaxPathLength != 5 {
+			t.Errorf("Expected MaxPathLength to be 5, got %d", *updated.Constraints.MaxPathLength)
 		}
 	})
 
@@ -631,7 +643,10 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 			t.Errorf("Expected delete_me to be removed, leaving keep_me. Got: %+v", types)
 		}
 		if updated.Constraints.MaxPathLength == nil {
-			t.Errorf("Expected MaxPathLength to be retained")
+			t.Fatal("Expected MaxPathLength to be retained")
+		}
+		if *updated.Constraints.MaxPathLength != 5 {
+			t.Errorf("Expected MaxPathLength to be 5, got %d", *updated.Constraints.MaxPathLength)
 		}
 	})
 }

@@ -364,7 +364,7 @@ func TestGetSubordinateByID(t *testing.T) {
 		resp, _ := doRequest(t, app, req)
 
 		// Could be 404 or 500 depending on GORM error parsing, handlers return NotFound or ServerError
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -443,7 +443,7 @@ func TestPutSubordinateByID(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -521,7 +521,7 @@ func TestDeleteSubordinateByID(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/subordinates/9999", http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -653,7 +653,7 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 		req.Header.Set("Content-Type", "text/plain")
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -767,7 +767,7 @@ func TestGetSubordinateHistory(t *testing.T) {
 		req := httptest.NewRequest("GET", "/subordinates/9999/history", http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("InvalidQuery", func(t *testing.T) {

@@ -137,7 +137,7 @@ func TestGetSubordinateMetadataPolicies(t *testing.T) {
 		req := httptest.NewRequest("GET", "/subordinates/9999/metadata-policies", http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -233,7 +233,7 @@ func TestPutSubordinateMetadataPolicies(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -312,7 +312,7 @@ func TestPostSubordinateMetadataPolicies(t *testing.T) {
 		req := httptest.NewRequest("POST", "/subordinates/9999/metadata-policies", http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -381,7 +381,7 @@ func TestDeleteSubordinateMetadataPolicies(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/subordinates/9999/metadata-policies", http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 
@@ -432,7 +432,7 @@ func TestGetSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		app, _ := setupSubordinateMetadataPoliciesApp(t)
 		req := httptest.NewRequest("GET", "/subordinates/9999/metadata-policies/openid_relying_party", http.NoBody)
 		resp, _ := doRequest(t, app, req)
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("NotFound/EntityType", func(t *testing.T) {
@@ -506,7 +506,10 @@ func TestPutSubordinateMetadataPolicyByEntityType(t *testing.T) {
 
 		// Verify OP was untouched
 		if opPol["untouched"] == nil {
-			t.Errorf("Expected OpenIDProvider policy to remain untouched")
+			t.Fatal("Expected OpenIDProvider policy to remain untouched")
+		}
+		if opPol["untouched"]["value"] != "safe" {
+			t.Errorf("Expected untouched policy value 'safe', got %v", opPol["untouched"]["value"])
 		}
 
 		// Verify RP was entirely replaced
@@ -655,7 +658,10 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 			t.Errorf("Expected RelyingParty to be entirely deleted")
 		}
 		if policies.OpenIDProvider == nil {
-			t.Errorf("Expected OpenIDProvider to be safely kept")
+			t.Fatal("Expected OpenIDProvider to be safely kept")
+		}
+		if policies.OpenIDProvider["issuer"] == nil || policies.OpenIDProvider["issuer"]["value"] != "keep-me" {
+			t.Errorf("Expected OpenIDProvider issuer value 'keep-me', got %v", policies.OpenIDProvider)
 		}
 	})
 
@@ -664,7 +670,7 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		app, _ := setupSubordinateMetadataPoliciesApp(t)
 		req := httptest.NewRequest("DELETE", "/subordinates/9999/metadata-policies/openid_relying_party", http.NoBody)
 		resp, _ := doRequest(t, app, req)
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("NotFound/EntityType", func(t *testing.T) {
@@ -801,7 +807,10 @@ func TestPutSubordinateMetadataPolicyByClaim(t *testing.T) {
 		rpPol := requireMetadataPolicies(t, updated.MetadataPolicy).RelyingParty
 
 		if rpPol["safe_claim"] == nil {
-			t.Errorf("Expected other claims to remain untouched")
+			t.Fatal("Expected other claims to remain untouched")
+		}
+		if rpPol["safe_claim"]["value"] != "untouched" {
+			t.Errorf("Expected safe_claim value 'untouched', got %v", rpPol["safe_claim"]["value"])
 		}
 
 		contacts := rpPol["contacts"]
@@ -1433,7 +1442,10 @@ func TestGeneralMetadataPolicyByEntityType(t *testing.T) {
 			t.Errorf("Expected RelyingParty to be deleted")
 		}
 		if updated.OpenIDProvider == nil {
-			t.Errorf("Expected OpenIDProvider to be kept")
+			t.Fatal("Expected OpenIDProvider to be kept")
+		}
+		if updated.OpenIDProvider["issuer"] == nil || updated.OpenIDProvider["issuer"]["value"] != "keep-me" {
+			t.Errorf("Expected OpenIDProvider issuer value 'keep-me', got %v", updated.OpenIDProvider)
 		}
 	})
 }

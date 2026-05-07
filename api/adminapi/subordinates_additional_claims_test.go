@@ -292,7 +292,7 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/additional-claims/missing", saved.ID), http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("PUT Success", func(t *testing.T) {
@@ -452,7 +452,7 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/additional-claims/not_here", saved.ID), http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }
 

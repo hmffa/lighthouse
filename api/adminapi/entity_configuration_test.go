@@ -933,8 +933,16 @@ func TestPutMetadata(t *testing.T) {
 		body := `{"openid_provider":{"issuer":"https://example.com"}}`
 		req := httptest.NewRequest("PUT", "/entity-configuration/metadata", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
-		resp, _ := doRequest(t, app, req)
+		resp, respBody := doRequest(t, app, req)
 		requireStatus(t, resp, 200)
+
+		var got oidfed.Metadata
+		if err := json.Unmarshal(respBody, &got); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if got.OpenIDProvider == nil || got.OpenIDProvider.Issuer != "https://example.com" {
+			t.Errorf("Expected OpenIDProvider.Issuer 'https://example.com', got %+v", got.OpenIDProvider)
+		}
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -1104,8 +1112,12 @@ func TestPutMetadataClaim(t *testing.T) {
 
 		req := httptest.NewRequest("PUT", "/entity-configuration/metadata/openid_provider/new", strings.NewReader(`456`))
 		req.Header.Set("Content-Type", "application/json")
-		resp, _ := doRequest(t, app, req)
+		resp, body := doRequest(t, app, req)
 		requireStatus(t, resp, 200)
+
+		if string(body) != "456" {
+			t.Errorf("Expected response body to echo back '456', got %q", string(body))
+		}
 	})
 
 	t.Run("Success_NoExistingMeta", func(t *testing.T) {
@@ -1128,8 +1140,12 @@ func TestPutMetadataClaim(t *testing.T) {
 
 		req := httptest.NewRequest("PUT", "/entity-configuration/metadata/openid_provider/new", strings.NewReader(`456`))
 		req.Header.Set("Content-Type", "application/json")
-		resp, _ := doRequest(t, app, req)
+		resp, body := doRequest(t, app, req)
 		requireStatus(t, resp, 200)
+
+		if string(body) != "456" {
+			t.Errorf("Expected response body to echo back '456', got %q", string(body))
+		}
 	})
 
 	t.Run("EmptyBody", func(t *testing.T) {
@@ -1480,8 +1496,16 @@ func TestPutMetadataEntityType(t *testing.T) {
 
 		req := httptest.NewRequest("PUT", "/entity-configuration/metadata/openid_provider", strings.NewReader(`{"new":2}`))
 		req.Header.Set("Content-Type", "application/json")
-		resp, _ := doRequest(t, app, req)
+		resp, body := doRequest(t, app, req)
 		requireStatus(t, resp, 200)
+
+		var got map[string]json.RawMessage
+		if err := json.Unmarshal(body, &got); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if _, ok := got["new"]; !ok {
+			t.Errorf("Expected response to contain 'new' claim, got keys %v", got)
+		}
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -1579,8 +1603,16 @@ func TestPostMetadataEntityType(t *testing.T) {
 
 		req := httptest.NewRequest("POST", "/entity-configuration/metadata/openid_provider", strings.NewReader(`{"new":2}`))
 		req.Header.Set("Content-Type", "application/json")
-		resp, _ := doRequest(t, app, req)
+		resp, body := doRequest(t, app, req)
 		requireStatus(t, resp, 200)
+
+		var got map[string]json.RawMessage
+		if err := json.Unmarshal(body, &got); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if _, ok := got["new"]; !ok {
+			t.Errorf("Expected response to contain 'new' claim, got keys %v", got)
+		}
 	})
 
 	t.Run("Success_CreatesNew", func(t *testing.T) {
@@ -1604,8 +1636,16 @@ func TestPostMetadataEntityType(t *testing.T) {
 
 		req := httptest.NewRequest("POST", "/entity-configuration/metadata/openid_provider", strings.NewReader(`{"new":2}`))
 		req.Header.Set("Content-Type", "application/json")
-		resp, _ := doRequest(t, app, req)
+		resp, body := doRequest(t, app, req)
 		requireStatus(t, resp, 200)
+
+		var got map[string]json.RawMessage
+		if err := json.Unmarshal(body, &got); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if _, ok := got["new"]; !ok {
+			t.Errorf("Expected response to contain 'new' claim, got keys %v", got)
+		}
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {

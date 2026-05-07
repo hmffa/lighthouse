@@ -122,7 +122,7 @@ func TestSubordinateJWKS(t *testing.T) {
 		app, _ := setupSubordinateKeysApp(t)
 		req := httptest.NewRequest("GET", "/subordinates/9999/jwks", http.NoBody)
 		resp, _ := doRequest(t, app, req)
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("PUT Success", func(t *testing.T) {
@@ -324,7 +324,7 @@ func TestSubordinateJWKDelete(t *testing.T) {
 		app, _ := setupSubordinateKeysApp(t)
 		req := httptest.NewRequest("DELETE", "/subordinates/9999/jwks/delete-me", http.NoBody)
 		resp, _ := doRequest(t, app, req)
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 
 	t.Run("NotFound/Key", func(t *testing.T) {

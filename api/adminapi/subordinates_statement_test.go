@@ -101,6 +101,6 @@ func TestSubordinateStatement(t *testing.T) {
 		req := httptest.NewRequest("GET", "/subordinates/9999/statement", http.NoBody)
 		resp, _ := doRequest(t, app, req)
 
-		assertStatusOneOf(t, resp, http.StatusNotFound, http.StatusInternalServerError)
+		assertStatus(t, resp, http.StatusNotFound)
 	})
 }

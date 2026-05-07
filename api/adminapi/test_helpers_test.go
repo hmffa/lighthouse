@@ -1,6 +1,7 @@
 package adminapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -57,6 +58,26 @@ func assertStatusOneOf(t *testing.T, resp *http.Response, expected ...int) {
 	t.Errorf("Expected status one of %v, got %d", expected, resp.StatusCode)
 }
 
+// assertErrorResponse checks the HTTP status code and verifies the JSON error body
+// contains the expected "error" field (e.g., "invalid_request", "not_found", "server_error").
+// Use this for error path tests instead of assertStatus when you want to verify the full API contract.
+func assertErrorResponse(t *testing.T, resp *http.Response, body []byte, expectedStatus int, expectedError string) {
+	t.Helper()
+	assertStatus(t, resp, expectedStatus)
+
+	var errBody struct {
+		Error            string `json:"error"`
+		ErrorDescription string `json:"error_description"`
+	}
+	if err := json.Unmarshal(body, &errBody); err != nil {
+		t.Errorf("Failed to unmarshal error response: %v (body: %s)", err, fmtBody(body))
+		return
+	}
+	if errBody.Error != expectedError {
+		t.Errorf("Expected error type %q, got %q (description: %q)", expectedError, errBody.Error, errBody.ErrorDescription)
+	}
+}
+
 // requireStatusMsg checks the response status code with a custom message prefix and calls t.Fatalf.
 func requireStatusMsg(t *testing.T, resp *http.Response, expected int, msg string) {
 	t.Helper()
@@ -76,3 +97,4 @@ func fmtBody(body []byte) string {
 	}
 	return string(body)
 }
+
