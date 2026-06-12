@@ -56,6 +56,23 @@ type testBackends struct {
 	db *gorm.DB
 }
 
+// mustAddSubordinate seeds a subordinate through the storage API, failing the
+// test on any error, and returns the stored record.
+func mustAddSubordinate(t *testing.T, subs model.SubordinateStorageBackend, info model.ExtendedSubordinateInfo) *model.ExtendedSubordinateInfo {
+	t.Helper()
+	if err := subs.Add(info); err != nil {
+		t.Fatalf("Failed to add subordinate %q: %v", info.EntityID, err)
+	}
+	saved, err := subs.Get(info.EntityID)
+	if err != nil {
+		t.Fatalf("Failed to get subordinate %q: %v", info.EntityID, err)
+	}
+	if saved == nil {
+		t.Fatalf("Subordinate %q not found after add", info.EntityID)
+	}
+	return saved
+}
+
 // setupSubordinateBaseApp creates a Fiber app and registers base subordinate endpoints.
 // Returns the app and the backend storage so tests can inject data.
 func setupSubordinateBaseApp(t *testing.T) (*fiber.App, testBackends) {
@@ -85,7 +102,8 @@ func TestGetSubordinates(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://sub1.example.org",
@@ -93,7 +111,8 @@ func TestGetSubordinates(t *testing.T) {
 					},
 				},
 			)
-			backends.Subordinates.Add(
+			mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://sub2.example.org",
@@ -122,7 +141,8 @@ func TestGetSubordinates(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://active.example.org",
@@ -130,7 +150,8 @@ func TestGetSubordinates(t *testing.T) {
 					},
 				},
 			)
-			backends.Subordinates.Add(
+			mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://pending.example.org",
@@ -159,7 +180,8 @@ func TestGetSubordinates(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://rp.example.org",
@@ -170,7 +192,8 @@ func TestGetSubordinates(t *testing.T) {
 					},
 				},
 			)
-			backends.Subordinates.Add(
+			mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://op.example.org",
@@ -390,7 +413,8 @@ func TestPostSubordinates(t *testing.T) {
 			app, backends := setupSubordinateBaseApp(t)
 
 			// 1. Create the initial subordinate
-			backends.Subordinates.Add(
+			mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://conflict.example.org",
@@ -425,7 +449,9 @@ func TestGetSubordinateByID(t *testing.T) {
 			app, backends := setupSubordinateBaseApp(t)
 
 			// Create a mock record
-			backends.Subordinates.Add(
+			// Grab the actual inserted ID to test the endpoint
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://specific.example.org",
@@ -433,12 +459,6 @@ func TestGetSubordinateByID(t *testing.T) {
 					},
 				},
 			)
-
-			// Grab the actual inserted ID to test the endpoint
-			saved, err := backends.Subordinates.Get("https://specific.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d", saved.ID), http.NoBody)
 			resp, body := doRequest(t, app, req)
@@ -480,7 +500,8 @@ func TestPutSubordinateByID(t *testing.T) {
 			app, backends := setupSubordinateBaseApp(t)
 
 			// Create a mock record
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID:    "https://update.example.org",
@@ -492,10 +513,6 @@ func TestPutSubordinateByID(t *testing.T) {
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://update.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			body := `{
 			"description": "New Description",
@@ -577,17 +594,14 @@ func TestPutSubordinateByID(t *testing.T) {
 		"InvalidBody", func(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://bad-body.example.org",
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://bad-body.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d", saved.ID), strings.NewReader(`not json`))
 			req.Header.Set("Content-Type", "application/json")
@@ -611,7 +625,8 @@ func TestDeleteSubordinateByID(t *testing.T) {
 			set.AddKey(createTestKey("test-key"))
 
 			// Create a mock record with JWKS
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://delete.example.org",
@@ -620,10 +635,6 @@ func TestDeleteSubordinateByID(t *testing.T) {
 					JWKS: model.JWKS{Keys: jwx.JWKS{Set: set}},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://delete.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 			originalJWKSID := saved.JWKSID
 
 			// Create a mock event for this subordinate
@@ -692,7 +703,8 @@ func TestIssue85_ReRegisterAfterDelete(t *testing.T) {
 			set.AddKey(createTestKey("original-key"))
 
 			// Step 1: Create initial subordinate with JWKS
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: entityID,
@@ -701,10 +713,6 @@ func TestIssue85_ReRegisterAfterDelete(t *testing.T) {
 					JWKS: model.JWKS{Keys: jwx.JWKS{Set: set}},
 				},
 			)
-			saved, err := backends.Subordinates.Get(entityID)
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 			originalJWKSID := saved.JWKSID
 			if originalJWKSID == nil {
 				t.Fatal("Expected JWKS to be created")
@@ -819,7 +827,8 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://status.example.org",
@@ -827,10 +836,6 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://status.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			req := httptest.NewRequest(
 				"PUT", fmt.Sprintf("/subordinates/%d/status", saved.ID), strings.NewReader("blocked"),
@@ -875,7 +880,8 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://missing-status.example.org",
@@ -883,10 +889,6 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://missing-status.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/status", saved.ID), strings.NewReader("  "))
 			req.Header.Set("Content-Type", "text/plain")
@@ -901,7 +903,8 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://invalid-status.example.org",
@@ -909,10 +912,6 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://invalid-status.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			req := httptest.NewRequest(
 				"PUT", fmt.Sprintf("/subordinates/%d/status", saved.ID), strings.NewReader("unknown-status"),
@@ -929,7 +928,8 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://no-keys.example.org",
@@ -937,10 +937,6 @@ func TestUpdateSubordinateStatus(t *testing.T) {
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://no-keys.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			req := httptest.NewRequest(
 				"PUT", fmt.Sprintf("/subordinates/%d/status", saved.ID), strings.NewReader("active"),
@@ -975,7 +971,8 @@ func TestGetSubordinateHistory(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://history.example.org",
@@ -983,10 +980,6 @@ func TestGetSubordinateHistory(t *testing.T) {
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://history.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			// Create mock events
 			backends.SubordinateEvents.Add(
@@ -1038,7 +1031,8 @@ func TestGetSubordinateHistory(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
 
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://history-opts.example.org",
@@ -1046,10 +1040,6 @@ func TestGetSubordinateHistory(t *testing.T) {
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://history-opts.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			backends.SubordinateEvents.Add(
 				model.SubordinateEvent{
@@ -1109,17 +1099,14 @@ func TestGetSubordinateHistory(t *testing.T) {
 		"InvalidQuery", func(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{
 						EntityID: "https://bad-query.example.org",
 					},
 				},
 			)
-			saved, err := backends.Subordinates.Get("https://bad-query.example.org")
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/history?limit=abc", saved.ID), http.NoBody)
 			resp, respBody := doRequest(t, app, req)
@@ -1132,12 +1119,12 @@ func TestGetSubordinateHistory(t *testing.T) {
 		"InvalidLimit_Negative", func(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: "https://limit-neg.example.org"},
 				},
 			)
-			saved, _ := backends.Subordinates.Get("https://limit-neg.example.org")
 
 			req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/history?limit=-1", saved.ID), http.NoBody)
 			resp, respBody := doRequest(t, app, req)
@@ -1166,12 +1153,12 @@ func TestGetSubordinateHistory(t *testing.T) {
 		"InvalidOffset_TooLarge", func(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: "https://offset-large.example.org"},
 				},
 			)
-			saved, _ := backends.Subordinates.Get("https://offset-large.example.org")
 
 			req := httptest.NewRequest(
 				"GET", fmt.Sprintf("/subordinates/%d/history?offset=999999999", saved.ID), http.NoBody,
@@ -1202,12 +1189,12 @@ func TestGetSubordinateHistory(t *testing.T) {
 		"InvalidFrom_Unparseable", func(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: "https://from-abc.example.org"},
 				},
 			)
-			saved, _ := backends.Subordinates.Get("https://from-abc.example.org")
 
 			req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/history?from=abc", saved.ID), http.NoBody)
 			resp, respBody := doRequest(t, app, req)
@@ -1220,12 +1207,12 @@ func TestGetSubordinateHistory(t *testing.T) {
 		"InvalidTo_Unparseable", func(t *testing.T) {
 			t.Parallel()
 			app, backends := setupSubordinateBaseApp(t)
-			backends.Subordinates.Add(
+			saved := mustAddSubordinate(
+				t, backends.Subordinates,
 				model.ExtendedSubordinateInfo{
 					BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: "https://to-abc.example.org"},
 				},
 			)
-			saved, _ := backends.Subordinates.Get("https://to-abc.example.org")
 
 			req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/history?to=abc", saved.ID), http.NoBody)
 			resp, respBody := doRequest(t, app, req)

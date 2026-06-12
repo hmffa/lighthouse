@@ -55,15 +55,11 @@ func TestSubordinateStatement(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateStatementApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://statement.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://statement.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/statement", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -97,7 +93,7 @@ func TestSubordinateStatement(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateStatementApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://crit-ext.example.org",
 			},
@@ -106,10 +102,6 @@ func TestSubordinateStatement(t *testing.T) {
 				{Claim: "normal_claim", Value: "normal_val", Crit: false},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://crit-ext.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/statement", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -144,15 +136,11 @@ func TestSubordinateStatement(t *testing.T) {
 
 		// No lifetime set in KV — GetSubordinateStatementLifetime returns default with no error.
 		// This covers the "missing config" path, NOT the error fallback.
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://lifetime-default.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://lifetime-default.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/statement", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -190,15 +178,11 @@ func TestSubordinateStatement(t *testing.T) {
 			t.Fatalf("Failed to seed invalid lifetime: %v", err)
 		}
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://lifetime-error.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://lifetime-error.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/statement", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)

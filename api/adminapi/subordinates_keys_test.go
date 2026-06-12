@@ -39,16 +39,12 @@ func TestSubordinateJWKS(t *testing.T) {
 		key := createTestKey("key-1")
 		set.AddKey(key)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://jwks-get.example.org",
 			},
 			JWKS: model.JWKS{Keys: jwx.JWKS{Set: set}},
 		})
-		saved, err := backends.Subordinates.Get("https://jwks-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -69,16 +65,12 @@ func TestSubordinateJWKS(t *testing.T) {
 	t.Run("GET Success/NoKeys", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateKeysApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://jwks-empty.example.org",
 			},
 			// No JWKS set
 		})
-		saved, err := backends.Subordinates.Get("https://jwks-empty.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -107,15 +99,11 @@ func TestSubordinateJWKS(t *testing.T) {
 	t.Run("PUT Success", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateKeysApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://jwks-put.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://jwks-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{"keys":[{"kty":"RSA","kid":"new-key","n":"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw","e":"AQAB"}]}`
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), strings.NewReader(body))
@@ -152,15 +140,11 @@ func TestSubordinateJWKS(t *testing.T) {
 	t.Run("PUT InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateKeysApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://jwks-bad-put.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://jwks-bad-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -176,10 +160,9 @@ func TestSubordinateJWKS(t *testing.T) {
 	t.Run("PUT EmptyKeys_ClearsJWKS", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateKeysApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: "https://jwks-empty-put.example.org"},
 		})
-		saved, _ := backends.Subordinates.Get("https://jwks-empty-put.example.org")
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), strings.NewReader(`{"keys":[]}`))
 		req.Header.Set("Content-Type", "application/json")
@@ -199,10 +182,9 @@ func TestSubordinateJWKS(t *testing.T) {
 	t.Run("PUT InvalidBody_MissingKty", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateKeysApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: "https://jwks-missingkty-put.example.org"},
 		})
-		saved, _ := backends.Subordinates.Get("https://jwks-missingkty-put.example.org")
 
 		body := `{"keys":[{"kid":"new-put-key","n":"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw","e":"AQAB"}]}`
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), strings.NewReader(body))
@@ -215,10 +197,9 @@ func TestSubordinateJWKS(t *testing.T) {
 	t.Run("PUT InvalidBody_InvalidBase64", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateKeysApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: "https://jwks-badb64-put.example.org"},
 		})
-		saved, _ := backends.Subordinates.Get("https://jwks-badb64-put.example.org")
 
 		body := `{"keys":[{"kty":"RSA","kid":"new-put-key","n":"invalid#base64","e":"AQAB"}]}`
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), strings.NewReader(body))
@@ -235,16 +216,12 @@ func TestSubordinateJWKS(t *testing.T) {
 		set := jwk.NewSet()
 		set.AddKey(createTestKey("old-key"))
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://jwks-post.example.org",
 			},
 			JWKS: model.JWKS{Keys: jwx.JWKS{Set: set}},
 		})
-		saved, err := backends.Subordinates.Get("https://jwks-post.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{"kty":"RSA","kid":"new-key","n":"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw","e":"AQAB"}`
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), strings.NewReader(body))
@@ -281,15 +258,11 @@ func TestSubordinateJWKS(t *testing.T) {
 	t.Run("POST InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateKeysApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://jwks-bad-post.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://jwks-bad-post.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/jwks", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -311,16 +284,12 @@ func TestSubordinateJWKDelete(t *testing.T) {
 		set.AddKey(createTestKey("keep-me"))
 		set.AddKey(createTestKey("delete-me"))
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://jwk-delete.example.org",
 			},
 			JWKS: model.JWKS{Keys: jwx.JWKS{Set: set}},
 		})
-		saved, err := backends.Subordinates.Get("https://jwk-delete.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/jwks/delete-me", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -372,16 +341,12 @@ func TestSubordinateJWKDelete(t *testing.T) {
 		set := jwk.NewSet()
 		set.AddKey(createTestKey("keep-me"))
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://jwk-delete-missing.example.org",
 			},
 			JWKS: model.JWKS{Keys: jwx.JWKS{Set: set}},
 		})
-		saved, err := backends.Subordinates.Get("https://jwk-delete-missing.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/jwks/missing-kid", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)

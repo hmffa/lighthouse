@@ -34,7 +34,7 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claims-get.example.org",
 			},
@@ -42,10 +42,6 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 				{Claim: "custom_claim", Value: "foo"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claims-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/additional-claims", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -81,15 +77,11 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claims-put.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claims-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		claimsList := []model.SubordinateAdditionalClaim{
 			{Claim: "new_claim_1", Value: "val1"},
@@ -134,15 +126,11 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 	t.Run("PUT InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claims-bad-put.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claims-bad-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/additional-claims", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -155,7 +143,7 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claims-post.example.org",
 			},
@@ -163,10 +151,6 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 				{Claim: "old_claim", Value: "old_val"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claims-post.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{"claim": "new_claim", "value": "new_val", "crit": true}`
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/additional-claims", saved.ID), strings.NewReader(body))
@@ -203,15 +187,11 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 	t.Run("POST InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claims-bad-post.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claims-bad-post.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/additional-claims", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -224,7 +204,7 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claims-dup-post.example.org",
 			},
@@ -232,10 +212,6 @@ func TestSubordinateAdditionalClaimsAll(t *testing.T) {
 				{Claim: "existing_claim", Value: "val1"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claims-dup-post.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		// POST with same claim name → should return 409 Conflict
 		body := `{"claim": "existing_claim", "value": "val2"}`
@@ -265,7 +241,7 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claim-by-id-get.example.org",
 			},
@@ -274,10 +250,6 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 				{Claim: "other_claim", Value: "ignored"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claim-by-id-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		// We need to fetch the actual ID of the inserted claim to test the endpoint
 		claims, err := backends.Subordinates.ListAdditionalClaims(fmt.Sprintf("%d", saved.ID))
@@ -304,15 +276,11 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 	t.Run("GET NotFound/Claim", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claim-missing-get.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claim-missing-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/additional-claims/missing", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -324,7 +292,7 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claim-by-id-put.example.org",
 			},
@@ -333,10 +301,6 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 				{Claim: "safe_claim", Value: "safe"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claim-by-id-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		claims, err := backends.Subordinates.ListAdditionalClaims(fmt.Sprintf("%d", saved.ID))
 		if err != nil {
@@ -385,15 +349,11 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 	t.Run("PUT InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claim-bad-put.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claim-bad-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/additional-claims/some_claim", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -406,7 +366,7 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claim-dup-put.example.org",
 			},
@@ -415,10 +375,6 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 				{Claim: "claim_b", Value: "val_b"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claim-dup-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		claims, err := backends.Subordinates.ListAdditionalClaims(fmt.Sprintf("%d", saved.ID))
 		if err != nil {
@@ -443,7 +399,7 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claim-by-id-delete.example.org",
 			},
@@ -452,10 +408,6 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 				{Claim: "keep_me", Value: "stay"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claim-by-id-delete.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		claims, err := backends.Subordinates.ListAdditionalClaims(fmt.Sprintf("%d", saved.ID))
 		if err != nil {
@@ -501,15 +453,11 @@ func TestSubordinateAdditionalClaimByID(t *testing.T) {
 	t.Run("DELETE NotFound", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateAdditionalClaimsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claim-missing-delete.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claim-missing-delete.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/additional-claims/not_here", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)

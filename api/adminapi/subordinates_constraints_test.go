@@ -39,16 +39,12 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 			MaxPathLength: &length,
 		}
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://constraints-get.example.org",
 			},
 			Constraints: constraints,
 		})
-		saved, err := backends.Subordinates.Get("https://constraints-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/constraints", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -68,15 +64,11 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 	t.Run("GET NoConstraints", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://no-constraints.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://no-constraints.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/constraints", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -92,15 +84,11 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://constraints-put.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://constraints-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{
 			"max_path_length": 3
@@ -143,7 +131,7 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 		app, backends := setupSubordinateConstraintsApp(t)
 
 		length := 5
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://constraints-delete.example.org",
 			},
@@ -151,10 +139,6 @@ func TestSubordinateConstraintsAll(t *testing.T) {
 				MaxPathLength: &length,
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://constraints-delete.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/constraints", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -204,7 +188,7 @@ func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
 		app, backends := setupSubordinateConstraintsApp(t)
 
 		length := 5
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://maxpath-get.example.org",
 			},
@@ -212,10 +196,6 @@ func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
 				MaxPathLength: &length,
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://maxpath-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/constraints/max-path-length", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -235,16 +215,12 @@ func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
 	t.Run("GET NotFound", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://maxpath-missing.example.org",
 			},
 			Constraints: &oidfed.ConstraintSpecification{},
 		})
-		saved, err := backends.Subordinates.Get("https://maxpath-missing.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/constraints/max-path-length", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -256,7 +232,7 @@ func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://maxpath-put.example.org",
 			},
@@ -264,10 +240,6 @@ func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
 				AllowedEntityTypes: []string{"keep_me"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://maxpath-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/constraints/max-path-length", saved.ID), strings.NewReader(`3`))
 		req.Header.Set("Content-Type", "application/json")
@@ -292,7 +264,7 @@ func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
 		app, backends := setupSubordinateConstraintsApp(t)
 
 		length := 5
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://maxpath-delete.example.org",
 			},
@@ -301,10 +273,6 @@ func TestSubordinateConstraintsMaxPathLength(t *testing.T) {
 				AllowedEntityTypes: []string{"keep_me"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://maxpath-delete.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/constraints/max-path-length", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -335,7 +303,7 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://naming-get.example.org",
 			},
@@ -345,10 +313,6 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://naming-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/constraints/naming-constraints", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -368,16 +332,12 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 	t.Run("GET NotFound", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://naming-missing.example.org",
 			},
 			Constraints: &oidfed.ConstraintSpecification{},
 		})
-		saved, err := backends.Subordinates.Get("https://naming-missing.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/constraints/naming-constraints", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -389,7 +349,7 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://naming-put.example.org",
 			},
@@ -397,10 +357,6 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 				AllowedEntityTypes: []string{"keep_me"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://naming-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{"permitted": ["new.example.com"], "excluded": ["bad.example.com"]}`
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/constraints/naming-constraints", saved.ID), strings.NewReader(body))
@@ -428,7 +384,7 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://naming-delete.example.org",
 			},
@@ -439,10 +395,6 @@ func TestSubordinateConstraintsNamingConstraints(t *testing.T) {
 				AllowedEntityTypes: []string{"keep_me"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://naming-delete.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/constraints/naming-constraints", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -473,7 +425,7 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://allowed-get.example.org",
 			},
@@ -481,10 +433,6 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 				AllowedEntityTypes: []string{"openid_relying_party"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://allowed-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/constraints/allowed-entity-types", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -504,16 +452,12 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 	t.Run("GET NotFound", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://allowed-missing.example.org",
 			},
 			Constraints: &oidfed.ConstraintSpecification{},
 		})
-		saved, err := backends.Subordinates.Get("https://allowed-missing.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/constraints/allowed-entity-types", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -526,7 +470,7 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 		app, backends := setupSubordinateConstraintsApp(t)
 
 		length := 5
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://allowed-put.example.org",
 			},
@@ -535,10 +479,6 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 				MaxPathLength:      &length,
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://allowed-put.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `["new_type"]`
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/constraints/allowed-entity-types", saved.ID), strings.NewReader(body))
@@ -566,7 +506,7 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://allowed-post.example.org",
 			},
@@ -574,10 +514,6 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 				AllowedEntityTypes: []string{"old_type"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://allowed-post.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `merged_type`
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/constraints/allowed-entity-types", saved.ID), strings.NewReader(body))
@@ -603,7 +539,7 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 		app, backends := setupSubordinateConstraintsApp(t)
 
 		length := 5
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://allowed-delete.example.org",
 			},
@@ -612,10 +548,6 @@ func TestSubordinateConstraintsAllowedEntityTypes(t *testing.T) {
 				MaxPathLength:      &length,
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://allowed-delete.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/constraints/allowed-entity-types/delete_me", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -1008,15 +940,11 @@ func TestSubordinateConstraintsPostAll(t *testing.T) {
 		}
 
 		// Seed subordinate with no constraints
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://post-all.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://post-all.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/constraints", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -1039,15 +967,11 @@ func TestSubordinateConstraintsPostAll(t *testing.T) {
 		app, backends := setupSubordinateConstraintsApp(t)
 
 		// No general constraints seeded — should copy empty spec
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://post-all-empty.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://post-all-empty.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/constraints", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -1081,15 +1005,11 @@ func TestSubordinateConstraintsEdgeCases(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://mpl-zero.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://mpl-zero.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		// max_path_length = 0 should succeed (0 is valid, means "no further subordinates")
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/constraints/max-path-length", saved.ID),
@@ -1111,15 +1031,11 @@ func TestSubordinateConstraintsEdgeCases(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://mpl-neg.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://mpl-neg.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/constraints/max-path-length", saved.ID),
 			strings.NewReader(`-1`))
@@ -1132,7 +1048,7 @@ func TestSubordinateConstraintsEdgeCases(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://dup-type.example.org",
 			},
@@ -1140,10 +1056,6 @@ func TestSubordinateConstraintsEdgeCases(t *testing.T) {
 				AllowedEntityTypes: []string{"openid_provider"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://dup-type.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		// POST duplicate — should return existing list without adding
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/constraints/allowed-entity-types", saved.ID),
@@ -1165,7 +1077,7 @@ func TestSubordinateConstraintsEdgeCases(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://del-noexist.example.org",
 			},
@@ -1173,10 +1085,6 @@ func TestSubordinateConstraintsEdgeCases(t *testing.T) {
 				AllowedEntityTypes: []string{"openid_provider"},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://del-noexist.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		// DELETE a type that doesn't exist — returns unchanged list
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/constraints/allowed-entity-types/nonexistent_type", saved.ID), http.NoBody)
@@ -1197,15 +1105,11 @@ func TestSubordinateConstraintsEdgeCases(t *testing.T) {
 		app, backends := setupSubordinateConstraintsApp(t)
 
 		// Subordinate with nil constraints
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://del-nilcons.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://del-nilcons.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/constraints/allowed-entity-types/any", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -1216,15 +1120,11 @@ func TestSubordinateConstraintsEdgeCases(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateConstraintsApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://putall-neg.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://putall-neg.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{"max_path_length": -1, "allowed_entity_types": ["openid_provider"]}`
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/constraints", saved.ID), strings.NewReader(body))

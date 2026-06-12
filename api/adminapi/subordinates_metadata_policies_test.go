@@ -69,16 +69,12 @@ func TestGetSubordinateMetadataPolicies(t *testing.T) {
 			},
 		}
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://has-policy.example.org",
 			},
 			MetadataPolicy: policy,
 		})
-		saved, err := backends.Subordinates.Get("https://has-policy.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -103,15 +99,11 @@ func TestGetSubordinateMetadataPolicies(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://no-policy.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://no-policy.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -138,15 +130,11 @@ func TestPutSubordinateMetadataPolicies(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://put-policy.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://put-policy.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{
 			"openid_relying_party": {
@@ -197,15 +185,11 @@ func TestPutSubordinateMetadataPolicies(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://bad-body.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://bad-body.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/metadata-policies", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -247,15 +231,11 @@ func TestPostSubordinateMetadataPolicies(t *testing.T) {
 		}
 
 		// Create a mock record with no policy
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://post-policy.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://post-policy.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/metadata-policies", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -321,16 +301,12 @@ func TestDeleteSubordinateMetadataPolicies(t *testing.T) {
 				},
 			},
 		}
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://delete-policy.example.org",
 			},
 			MetadataPolicy: initialPolicy,
 		})
-		saved, err := backends.Subordinates.Get("https://delete-policy.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -390,16 +366,12 @@ func TestGetSubordinateMetadataPolicyByEntityType(t *testing.T) {
 			},
 		}
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://entity-type-get.example.org",
 			},
 			MetadataPolicy: policy,
 		})
-		saved, err := backends.Subordinates.Get("https://entity-type-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -428,16 +400,12 @@ func TestGetSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://missing-type.example.org",
 			},
 			MetadataPolicy: &oidfed.MetadataPolicies{},
 		})
-		saved, err := backends.Subordinates.Get("https://missing-type.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_provider", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -454,7 +422,7 @@ func TestPutSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://put-type.example.org",
 			},
@@ -467,10 +435,6 @@ func TestPutSubordinateMetadataPolicyByEntityType(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://put-type.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{
 			"new_claim": {
@@ -513,15 +477,11 @@ func TestPutSubordinateMetadataPolicyByEntityType(t *testing.T) {
 	t.Run("InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://bad-body-put-type.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://bad-body-put-type.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -539,7 +499,7 @@ func TestPostSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://post-type.example.org",
 			},
@@ -549,10 +509,6 @@ func TestPostSubordinateMetadataPolicyByEntityType(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://post-type.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{
 			"new_claim": {
@@ -587,15 +543,11 @@ func TestPostSubordinateMetadataPolicyByEntityType(t *testing.T) {
 	t.Run("InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://bad-body-post-type.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://bad-body-post-type.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -613,7 +565,7 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://delete-type.example.org",
 			},
@@ -626,10 +578,6 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://delete-type.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -671,16 +619,12 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://missing-delete-type.example.org",
 			},
 			MetadataPolicy: &oidfed.MetadataPolicies{},
 		})
-		saved, err := backends.Subordinates.Get("https://missing-delete-type.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_provider", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -738,13 +682,9 @@ func TestSubordinateMetadataPolicyEntityTypeMatrix(t *testing.T) {
 			app, backends := setupSubordinateMetadataPoliciesApp(t)
 
 			entityID := "https://matrix-" + et + ".example.org"
-			backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+			saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 				BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: entityID},
 			})
-			saved, err := backends.Subordinates.Get(entityID)
-			if err != nil {
-				t.Fatalf("Failed to get subordinate: %v", err)
-			}
 
 			path := fmt.Sprintf("/subordinates/%d/metadata-policies/%s", saved.ID, et)
 
@@ -800,7 +740,7 @@ func TestGetSubordinateMetadataPolicyByClaim(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://claim-get.example.org",
 			},
@@ -813,10 +753,6 @@ func TestGetSubordinateMetadataPolicyByClaim(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://claim-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -840,7 +776,7 @@ func TestGetSubordinateMetadataPolicyByClaim(t *testing.T) {
 	t.Run("NotFound/Claim", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://missing-claim.example.org",
 			},
@@ -848,10 +784,6 @@ func TestGetSubordinateMetadataPolicyByClaim(t *testing.T) {
 				RelyingParty: oidfed.MetadataPolicy{}, // exists but empty
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://missing-claim.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/missing", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -868,7 +800,7 @@ func TestPutSubordinateMetadataPolicyByClaim(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://put-claim.example.org",
 			},
@@ -881,10 +813,6 @@ func TestPutSubordinateMetadataPolicyByClaim(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://put-claim.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{
 			"value": "new_direct_value"
@@ -922,15 +850,11 @@ func TestPutSubordinateMetadataPolicyByClaim(t *testing.T) {
 	t.Run("InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://bad-body-put-claim.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://bad-body-put-claim.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -948,7 +872,7 @@ func TestPostSubordinateMetadataPolicyByClaim(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://post-claim.example.org",
 			},
@@ -960,10 +884,6 @@ func TestPostSubordinateMetadataPolicyByClaim(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://post-claim.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `{
 			"value": "merged_value"
@@ -1009,7 +929,7 @@ func TestDeleteSubordinateMetadataPolicyByClaim(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://delete-claim.example.org",
 			},
@@ -1020,10 +940,6 @@ func TestDeleteSubordinateMetadataPolicyByClaim(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://delete-claim.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/delete_me", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -1048,7 +964,7 @@ func TestDeleteSubordinateMetadataPolicyByClaim(t *testing.T) {
 	t.Run("NotFound/Claim", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://missing-delete-claim.example.org",
 			},
@@ -1056,10 +972,6 @@ func TestDeleteSubordinateMetadataPolicyByClaim(t *testing.T) {
 				RelyingParty: oidfed.MetadataPolicy{},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://missing-delete-claim.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/not_here", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -1076,7 +988,7 @@ func TestGetSubordinateMetadataPolicyByOperator(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://operator-get.example.org",
 			},
@@ -1088,10 +1000,6 @@ func TestGetSubordinateMetadataPolicyByOperator(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://operator-get.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts/add", saved.ID), http.NoBody)
 		resp, body := doRequest(t, app, req)
@@ -1111,7 +1019,7 @@ func TestGetSubordinateMetadataPolicyByOperator(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://missing-operator.example.org",
 			},
@@ -1121,10 +1029,6 @@ func TestGetSubordinateMetadataPolicyByOperator(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://missing-operator.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts/add", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -1141,7 +1045,7 @@ func TestPutSubordinateMetadataPolicyByOperator(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://put-operator.example.org",
 			},
@@ -1154,10 +1058,6 @@ func TestPutSubordinateMetadataPolicyByOperator(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://put-operator.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		body := `["new@example.org"]`
 
@@ -1186,15 +1086,11 @@ func TestPutSubordinateMetadataPolicyByOperator(t *testing.T) {
 	t.Run("InvalidBody", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://bad-body-put-op.example.org",
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://bad-body-put-op.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("PUT", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts/add", saved.ID), strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -1212,7 +1108,7 @@ func TestDeleteSubordinateMetadataPolicyByOperator(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://delete-operator.example.org",
 			},
@@ -1225,10 +1121,6 @@ func TestDeleteSubordinateMetadataPolicyByOperator(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://delete-operator.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts/delete_me", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
@@ -1253,7 +1145,7 @@ func TestDeleteSubordinateMetadataPolicyByOperator(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
-		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+		saved := mustAddSubordinate(t, backends.Subordinates, model.ExtendedSubordinateInfo{
 			BasicSubordinateInfo: model.BasicSubordinateInfo{
 				EntityID: "https://missing-delete-op.example.org",
 			},
@@ -1263,10 +1155,6 @@ func TestDeleteSubordinateMetadataPolicyByOperator(t *testing.T) {
 				},
 			},
 		})
-		saved, err := backends.Subordinates.Get("https://missing-delete-op.example.org")
-		if err != nil {
-			t.Fatalf("Failed to get subordinate: %v", err)
-		}
 
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts/not_here", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
