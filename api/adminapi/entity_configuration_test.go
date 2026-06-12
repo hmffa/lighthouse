@@ -289,10 +289,12 @@ func TestPutAdditionalClaims(t *testing.T) {
 	t.Parallel()
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{
 				setFn: func(items []smodel.AddAdditionalClaim) ([]smodel.EntityConfigurationAdditionalClaim, error) {
+					setCalled = true
 					return []smodel.EntityConfigurationAdditionalClaim{
 						{ID: 1, Claim: items[0].Claim, Value: items[0].Value, Crit: items[0].Crit},
 					}, nil
@@ -312,6 +314,9 @@ func TestPutAdditionalClaims(t *testing.T) {
 		}
 		if len(got) != 1 || got[0].Claim != "org_name" {
 			t.Errorf("unexpected response: %+v", got)
+		}
+		if !setCalled {
+			t.Error("expected Set to be called — claims were never persisted")
 		}
 	})
 
@@ -853,11 +858,13 @@ func TestPutLifetime(t *testing.T) {
 	t.Parallel()
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
 			&mockKeyValueStore{
 				setAnyFn: func(scope, key string, v any) error {
+					setCalled = true
 					if scope == smodel.KeyValueScopeEntityConfiguration && key == smodel.KeyValueKeyLifetime {
 						val := v.(int)
 						if val != 7200 {
@@ -875,6 +882,9 @@ func TestPutLifetime(t *testing.T) {
 		requireStatus(t, resp, respBody, 200)
 		if string(respBody) != "7200" {
 			t.Errorf("expected 7200 in response, got %q", string(respBody))
+		}
+		if !setCalled {
+			t.Error("expected SetAny to be called — lifetime was never persisted")
 		}
 	})
 
@@ -940,11 +950,13 @@ func TestPutLifetime(t *testing.T) {
 
 	t.Run("ZeroValueSuccess", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
 			&mockKeyValueStore{
 				setAnyFn: func(_, _ string, v any) error {
+					setCalled = true
 					if v.(int) != 0 {
 						t.Errorf("expected 0 to be saved, got %v", v)
 					}
@@ -959,6 +971,9 @@ func TestPutLifetime(t *testing.T) {
 		requireStatus(t, resp, respBody, 200)
 		if string(respBody) != "0" {
 			t.Errorf("expected 0 in response, got %q", string(respBody))
+		}
+		if !setCalled {
+			t.Error("expected SetAny to be called — lifetime was never persisted")
 		}
 	})
 }
@@ -1051,11 +1066,13 @@ func TestPutMetadata(t *testing.T) {
 	t.Parallel()
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
 			&mockKeyValueStore{
 				setFn: func(scope, key string, value datatypes.JSON) error {
+					setCalled = true
 					if scope == smodel.KeyValueScopeEntityConfiguration && key == smodel.KeyValueKeyMetadata {
 						if !strings.Contains(string(value), "https://example.com") {
 							t.Errorf("expected string to contain issuer, got %s", value)
@@ -1078,6 +1095,9 @@ func TestPutMetadata(t *testing.T) {
 		}
 		if got.OpenIDProvider == nil || got.OpenIDProvider.Issuer != "https://example.com" {
 			t.Errorf("Expected OpenIDProvider.Issuer 'https://example.com', got %+v", got.OpenIDProvider)
+		}
+		if !setCalled {
+			t.Error("expected Set to be called — metadata was never persisted")
 		}
 	})
 
@@ -1229,6 +1249,7 @@ func TestPutMetadataClaim(t *testing.T) {
 	t.Parallel()
 	t.Run("Success_ExistingMeta", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
@@ -1237,6 +1258,7 @@ func TestPutMetadataClaim(t *testing.T) {
 					return datatypes.JSON(`{"openid_provider":{"old":123}}`), nil
 				},
 				setFn: func(_, _ string, value datatypes.JSON) error {
+					setCalled = true
 					s := string(value)
 					if !strings.Contains(s, `"old":123`) || !strings.Contains(s, `"new":456`) {
 						t.Errorf("expected merged json, got %s", s)
@@ -1254,10 +1276,14 @@ func TestPutMetadataClaim(t *testing.T) {
 		if string(body) != "456" {
 			t.Errorf("Expected response body to echo back '456', got %q", string(body))
 		}
+		if !setCalled {
+			t.Error("expected Set to be called — merged metadata was never persisted")
+		}
 	})
 
 	t.Run("Success_NoExistingMeta", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
@@ -1266,6 +1292,7 @@ func TestPutMetadataClaim(t *testing.T) {
 					return nil, nil
 				},
 				setFn: func(_, _ string, value datatypes.JSON) error {
+					setCalled = true
 					if !strings.Contains(string(value), `"new":456`) {
 						t.Errorf("expected json, got %s", value)
 					}
@@ -1281,6 +1308,9 @@ func TestPutMetadataClaim(t *testing.T) {
 
 		if string(body) != "456" {
 			t.Errorf("Expected response body to echo back '456', got %q", string(body))
+		}
+		if !setCalled {
+			t.Error("expected Set to be called — merged metadata was never persisted")
 		}
 	})
 
@@ -1360,6 +1390,7 @@ func TestDeleteMetadataClaim(t *testing.T) {
 	t.Parallel()
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
@@ -1368,6 +1399,7 @@ func TestDeleteMetadataClaim(t *testing.T) {
 					return datatypes.JSON(`{"openid_provider":{"target":123,"other":456}}`), nil
 				},
 				setFn: func(_, _ string, value datatypes.JSON) error {
+					setCalled = true
 					s := string(value)
 					if strings.Contains(s, `"target"`) {
 						t.Errorf("claim was not deleted: %s", s)
@@ -1383,10 +1415,14 @@ func TestDeleteMetadataClaim(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/entity-configuration/metadata/openid_provider/target", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 		requireStatus(t, resp, bodyBytes, 204)
+		if !setCalled {
+			t.Error("expected Set to be called — deletion was never persisted")
+		}
 	})
 
 	t.Run("LastClaimRemovesEntityType", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
@@ -1395,6 +1431,7 @@ func TestDeleteMetadataClaim(t *testing.T) {
 					return datatypes.JSON(`{"openid_provider":{"only_claim":1}}`), nil
 				},
 				setFn: func(_, _ string, value datatypes.JSON) error {
+					setCalled = true
 					s := string(value)
 					if strings.Contains(s, `"openid_provider"`) {
 						t.Errorf("entity type should be removed when its last claim is deleted: %s", s)
@@ -1407,6 +1444,9 @@ func TestDeleteMetadataClaim(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/entity-configuration/metadata/openid_provider/only_claim", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 		requireStatus(t, resp, bodyBytes, 204)
+		if !setCalled {
+			t.Error("expected Set to be called — deletion was never persisted")
+		}
 	})
 
 	t.Run("NoMetadataStored", func(t *testing.T) {
@@ -1607,6 +1647,7 @@ func TestPutMetadataEntityType(t *testing.T) {
 	t.Parallel()
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
@@ -1615,6 +1656,7 @@ func TestPutMetadataEntityType(t *testing.T) {
 					return datatypes.JSON(`{"openid_provider":{"old":1},"other":{}}`), nil
 				},
 				setFn: func(_, _ string, value datatypes.JSON) error {
+					setCalled = true
 					s := string(value)
 					if strings.Contains(s, `"old":1`) {
 						t.Errorf("should have replaced openid_provider entirely: %s", s)
@@ -1641,6 +1683,9 @@ func TestPutMetadataEntityType(t *testing.T) {
 		}
 		if _, ok := got["new"]; !ok {
 			t.Errorf("Expected response to contain 'new' claim, got keys %v", got)
+		}
+		if !setCalled {
+			t.Error("expected Set to be called — metadata was never persisted")
 		}
 	})
 
@@ -1720,6 +1765,7 @@ func TestPostMetadataEntityType(t *testing.T) {
 	t.Parallel()
 	t.Run("Success_MergesInto", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
@@ -1728,6 +1774,7 @@ func TestPostMetadataEntityType(t *testing.T) {
 					return datatypes.JSON(`{"openid_provider":{"old":1}}`), nil
 				},
 				setFn: func(_, _ string, value datatypes.JSON) error {
+					setCalled = true
 					s := string(value)
 					if !strings.Contains(s, `"old":1`) || !strings.Contains(s, `"new":2`) {
 						t.Errorf("should merge existing and new: %s", s)
@@ -1749,10 +1796,14 @@ func TestPostMetadataEntityType(t *testing.T) {
 		if _, ok := got["new"]; !ok {
 			t.Errorf("Expected response to contain 'new' claim, got keys %v", got)
 		}
+		if !setCalled {
+			t.Error("expected Set to be called — metadata was never persisted")
+		}
 	})
 
 	t.Run("Success_CreatesNew", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
@@ -1761,6 +1812,7 @@ func TestPostMetadataEntityType(t *testing.T) {
 					return nil, nil
 				},
 				setFn: func(_, _ string, value datatypes.JSON) error {
+					setCalled = true
 					s := string(value)
 					if !strings.Contains(s, `"openid_provider":{"new":2}`) {
 						t.Errorf("should create new: %s", s)
@@ -1781,6 +1833,9 @@ func TestPostMetadataEntityType(t *testing.T) {
 		}
 		if _, ok := got["new"]; !ok {
 			t.Errorf("Expected response to contain 'new' claim, got keys %v", got)
+		}
+		if !setCalled {
+			t.Error("expected Set to be called — metadata was never persisted")
 		}
 	})
 
@@ -1860,6 +1915,7 @@ func TestDeleteMetadataEntityType(t *testing.T) {
 	t.Parallel()
 	t.Run("Success", func(t *testing.T) {
 		t.Parallel()
+		setCalled := false
 		app := setupEntityConfigTestApp(
 			newStubFedEntity(),
 			&mockAdditionalClaimsStore{},
@@ -1868,6 +1924,7 @@ func TestDeleteMetadataEntityType(t *testing.T) {
 					return datatypes.JSON(`{"openid_provider":{"target":123},"other":{}}`), nil
 				},
 				setFn: func(_, _ string, value datatypes.JSON) error {
+					setCalled = true
 					s := string(value)
 					if strings.Contains(s, `"openid_provider"`) {
 						t.Errorf("entity type was not deleted: %s", s)
@@ -1883,6 +1940,9 @@ func TestDeleteMetadataEntityType(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/entity-configuration/metadata/openid_provider", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 		requireStatus(t, resp, bodyBytes, 204)
+		if !setCalled {
+			t.Error("expected Set to be called — deletion was never persisted")
+		}
 	})
 
 	t.Run("NoMetadataStored", func(t *testing.T) {
