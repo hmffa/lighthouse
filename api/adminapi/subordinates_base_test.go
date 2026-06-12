@@ -529,10 +529,29 @@ func TestPutSubordinateByID(t *testing.T) {
 				t.Errorf("Expected description 'New Description', got %q", updated.Description)
 			}
 
-			// Note: GORM's UpdateAll currently appends related entities instead of replacing them
-			// due to how it handles slices on OnConflict updates. We assert there are at least 2.
-			if len(updated.SubordinateEntityTypes) < 2 {
-				t.Errorf("Expected at least 2 entity types, got %d", len(updated.SubordinateEntityTypes))
+			// PIN of current behavior: PUT *appends* entity types instead of
+			// replacing them. Storage Update inserts the new rows with ON
+			// CONFLICT DO NOTHING and never deletes stale ones
+			// (storage/subordinates_storage.go Update), so old_type survives
+			// alongside the two new types. REST PUT semantics would replace;
+			// whether append is intended is pending maintainer clarification.
+			// If Update ever switches to replace semantics this assertion will
+			// fail — update the expected set to just new_type_1/new_type_2.
+			wantTypes := []string{"old_type", "new_type_1", "new_type_2"}
+			gotTypes := make(map[string]bool, len(updated.SubordinateEntityTypes))
+			for _, et := range updated.SubordinateEntityTypes {
+				gotTypes[et.EntityType] = true
+			}
+			if len(updated.SubordinateEntityTypes) != len(wantTypes) {
+				t.Errorf(
+					"Expected exactly %d entity types %v after PUT, got %d: %v",
+					len(wantTypes), wantTypes, len(updated.SubordinateEntityTypes), gotTypes,
+				)
+			}
+			for _, want := range wantTypes {
+				if !gotTypes[want] {
+					t.Errorf("Expected entity type %q to be present after PUT, got %v", want, gotTypes)
+				}
 			}
 
 			// Verify event was created
