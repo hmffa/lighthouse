@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -632,5 +633,100 @@ func TestUsersWithAuthMiddleware(t *testing.T) {
 		})
 		resp, bodyBytes := doRequest(t, app, req)
 		assertStatus(t, resp, bodyBytes, http.StatusUnauthorized)
+	})
+}
+
+// --- Test: password material must never appear in API responses ---
+
+// TestUserResponsesDoNotLeakPasswordHash populates PasswordHash in every mock
+// return value and asserts the serialized responses contain no hash or
+// plaintext-password material. The only guard is the `json:"-"` tag on
+// model.User.PasswordHash; if that tag is removed or renamed, these fail.
+func TestUserResponsesDoNotLeakPasswordHash(t *testing.T) {
+	t.Parallel()
+
+	const sentinelHash = "$argon2id$v=19$m=65536,t=3,p=2$c29tZXNhbHQ$bGVha3NlbnRpbmVs"
+	const plaintextPassword = "S3cret-Plaintext!"
+
+	leakedUser := func(username string) *model.User {
+		return &model.User{
+			ID:           1,
+			Username:     username,
+			PasswordHash: sentinelHash,
+			DisplayName:  "Leak Check",
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+	}
+
+	assertNoLeak := func(t *testing.T, body []byte) {
+		t.Helper()
+		for _, fragment := range []string{"argon2", "password_hash", "PasswordHash", plaintextPassword} {
+			if strings.Contains(string(body), fragment) {
+				t.Errorf("response leaks password material (found %q): %s", fragment, fmtBody(body))
+			}
+		}
+	}
+
+	t.Run("List", func(t *testing.T) {
+		t.Parallel()
+		store := &mockUsersStore{
+			ListFunc: func() ([]model.User, error) {
+				return []model.User{*leakedUser("alice"), *leakedUser("bob")}, nil
+			},
+		}
+		app := setupUsersApp(t, store)
+		resp, body := doRequest(t, app, newJSONRequest(t, "GET", "/api/v1/admin/users/", nil))
+		requireStatus(t, resp, body, http.StatusOK)
+		assertNoLeak(t, body)
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		t.Parallel()
+		store := &mockUsersStore{
+			GetFunc: func(username string) (*model.User, error) {
+				return leakedUser(username), nil
+			},
+		}
+		app := setupUsersApp(t, store)
+		resp, body := doRequest(t, app, newJSONRequest(t, "GET", "/api/v1/admin/users/alice", nil))
+		requireStatus(t, resp, body, http.StatusOK)
+		assertNoLeak(t, body)
+	})
+
+	t.Run("Create", func(t *testing.T) {
+		t.Parallel()
+		store := &mockUsersStore{
+			CreateFunc: func(username, _, displayName string) (*model.User, error) {
+				u := leakedUser(username)
+				u.DisplayName = displayName
+				return u, nil
+			},
+		}
+		app := setupUsersApp(t, store)
+		req := newJSONRequest(t, "POST", "/api/v1/admin/users/", map[string]string{
+			"username":     "alice",
+			"password":     plaintextPassword,
+			"display_name": "Alice",
+		})
+		resp, body := doRequest(t, app, req)
+		requireStatus(t, resp, body, http.StatusCreated)
+		assertNoLeak(t, body)
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		t.Parallel()
+		store := &mockUsersStore{
+			UpdateFunc: func(username string, _ *string, _ *string, _ *bool) (*model.User, error) {
+				return leakedUser(username), nil
+			},
+		}
+		app := setupUsersApp(t, store)
+		req := newJSONRequest(t, "PUT", "/api/v1/admin/users/alice", map[string]string{
+			"password": plaintextPassword,
+		})
+		resp, body := doRequest(t, app, req)
+		requireStatus(t, resp, body, http.StatusOK)
+		assertNoLeak(t, body)
 	})
 }
