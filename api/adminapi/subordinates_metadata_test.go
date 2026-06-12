@@ -18,18 +18,7 @@ func setupSubordinateMetadataApp(t *testing.T) (*fiber.App, model.Backends) {
 	t.Helper()
 	store := newSubordinateTestStorage(t)
 
-	backends := model.Backends{
-		Subordinates:      store.SubordinateStorage(),
-		SubordinateEvents: store.SubordinateEventsStorage(),
-		KV:                store.KeyValue(),
-		Transaction: func(fn model.TransactionFunc) error {
-			return fn(&model.Backends{
-				Subordinates:      store.SubordinateStorage(),
-				SubordinateEvents: store.SubordinateEventsStorage(),
-				KV:                store.KeyValue(),
-			})
-		},
-	}
+	backends := store.Backends()
 
 	app := fiber.New()
 	registerSubordinateMetadata(app, backends)

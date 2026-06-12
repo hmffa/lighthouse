@@ -62,26 +62,7 @@ func setupSubordinateBaseApp(t *testing.T) (*fiber.App, testBackends) {
 	t.Helper()
 	store := newSubordinateTestStorage(t)
 
-	// Build the Backends struct as expected by handlers
-	backends := model.Backends{
-		Subordinates:      store.SubordinateStorage(),
-		SubordinateEvents: store.SubordinateEventsStorage(),
-		KV:                store.KeyValue(),
-		// Wrap operations in DB transactions using the storage's DB
-		Transaction: func(fn model.TransactionFunc) error {
-			// A real Transaction func would use gorm's Transaction, but since we
-			// just want a mock/test behavior, we can execute directly or simulate it.
-			// Implementing a full DB-based Tx func is hard without accessing s.db.
-			// For testing base routes directly, we just call fn()
-			return fn(
-				&model.Backends{
-					Subordinates:      store.SubordinateStorage(),
-					SubordinateEvents: store.SubordinateEventsStorage(),
-					KV:                store.KeyValue(),
-				},
-			)
-		},
-	}
+	backends := store.Backends()
 
 	app := fiber.New()
 
@@ -775,6 +756,52 @@ func TestIssue85_ReRegisterAfterDelete(t *testing.T) {
 			}
 		},
 	)
+}
+
+// failingEventStore wraps a real SubordinateEventStore but fails every Add,
+// to force a rollback inside an otherwise-real transaction.
+type failingEventStore struct {
+	model.SubordinateEventStore
+}
+
+func (*failingEventStore) Add(_ model.SubordinateEvent) error {
+	return errors.New("injected event-store failure")
+}
+
+// TestCreateSubordinateRollbackOnEventFailure verifies the atomicity contract:
+// creating a subordinate and recording its event happen in one transaction, so
+// when event recording fails the subordinate write must be rolled back too.
+func TestCreateSubordinateRollbackOnEventFailure(t *testing.T) {
+	t.Parallel()
+	store := newSubordinateTestStorage(t)
+	backends := store.Backends()
+	realTx := backends.Transaction
+	// Wrap the REAL gorm transaction but swap a failing event store into the
+	// tx-scoped backends handed to the handler.
+	backends.Transaction = func(fn model.TransactionFunc) error {
+		return realTx(func(txb *model.Backends) error {
+			txb.SubordinateEvents = &failingEventStore{SubordinateEventStore: txb.SubordinateEvents}
+			return fn(txb)
+		})
+	}
+	app := fiber.New()
+	registerSubordinatesBase(app, backends)
+
+	body := `{"entity_id":"https://rollback.example.org","registered_entity_types":["openid_provider"],"status":"pending"}`
+	req := httptest.NewRequest("POST", "/subordinates", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, respBody := doRequest(t, app, req)
+	assertErrorResponse(t, resp, respBody, http.StatusInternalServerError, "server_error")
+
+	// Atomicity: the subordinate write must have been rolled back together
+	// with the failed event write.
+	sub, err := backends.Subordinates.Get("https://rollback.example.org")
+	if err != nil {
+		t.Fatalf("Failed to query subordinate: %v", err)
+	}
+	if sub != nil {
+		t.Errorf("Subordinate persisted despite failed transaction — rollback broken")
+	}
 }
 
 // --- PUT /subordinates/:subordinateID/status TESTS ---
