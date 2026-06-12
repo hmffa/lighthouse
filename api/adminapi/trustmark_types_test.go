@@ -341,20 +341,39 @@ func TestTrustMarkTypesHandlers_Update(t *testing.T) {
 
 	t.Run("SuccessWithOwnerAndIssuers", func(t *testing.T) {
 		t.Parallel()
+		updateOwnerCalled := false
+		setIssuersCalled := false
 		mockStore := &mockTrustMarkTypesStore{
 			updateFn: func(_ string, _ model.AddTrustMarkType) (*model.TrustMarkType, error) {
 				return &model.TrustMarkType{TrustMarkType: "tx-updated"}, nil
 			},
-			updateOwnerFn: func(_ string, req model.AddTrustMarkOwner) (*model.TrustMarkOwner, error) {
+			updateOwnerFn: func(id string, req model.AddTrustMarkOwner) (*model.TrustMarkOwner, error) {
+				updateOwnerCalled = true
+				if id != "1" {
+					t.Errorf("Expected trust mark type ID %q passed to UpdateOwner, got %q", "1", id)
+				}
+				if req.EntityID != "owner1" {
+					t.Errorf("Expected owner entity_id %q, got %q", "owner1", req.EntityID)
+				}
 				return &model.TrustMarkOwner{EntityID: req.EntityID}, nil
 			},
-			setIssuersFn: func(_ string, _ []model.AddTrustMarkIssuer) ([]model.TrustMarkIssuer, error) {
+			setIssuersFn: func(id string, issuers []model.AddTrustMarkIssuer) ([]model.TrustMarkIssuer, error) {
+				setIssuersCalled = true
+				if id != "1" {
+					t.Errorf("Expected trust mark type ID %q passed to SetIssuers, got %q", "1", id)
+				}
+				if len(issuers) != 1 || issuers[0].Issuer != "iss1" {
+					t.Errorf("Expected issuers [{Issuer: iss1}], got %+v", issuers)
+				}
 				return []model.TrustMarkIssuer{}, nil
 			},
 		}
 		app := setupTrustMarkTypesApp(t, mockStore)
 
-		body := `{"trust_mark_type": "type3", "owner": {"entity_id": "owner1"}, "issuers": [{"issuer": "iss1"}]}`
+		// Keys must match AddTrustMarkType's JSON tags (trust_mark_owner,
+		// trust_mark_issuers); unknown keys are silently dropped by the JSON
+		// decoder and the handler then skips both store calls.
+		body := `{"trust_mark_type": "type3", "trust_mark_owner": {"entity_id": "owner1"}, "trust_mark_issuers": [{"issuer": "iss1"}]}`
 		req := httptest.NewRequest("PUT", "/trust-marks/types/1", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		resp, respBody := doRequest(t, app, req)
@@ -362,6 +381,12 @@ func TestTrustMarkTypesHandlers_Update(t *testing.T) {
 		requireStatus(t, resp, respBody, http.StatusOK)
 		if !strings.Contains(string(respBody), "tx-updated") {
 			t.Errorf("Expected response to contain 'tx-updated'")
+		}
+		if !updateOwnerCalled {
+			t.Error("Expected UpdateOwner to be called for trust_mark_owner in body")
+		}
+		if !setIssuersCalled {
+			t.Error("Expected SetIssuers to be called for trust_mark_issuers in body")
 		}
 	})
 
@@ -374,7 +399,7 @@ func TestTrustMarkTypesHandlers_Update(t *testing.T) {
 		}
 		app := setupTrustMarkTypesApp(t, mockStore)
 
-		body := `{"trust_mark_type": "type3", "owner": {"entity_id": "owner1"}}`
+		body := `{"trust_mark_type": "type3", "trust_mark_owner": {"entity_id": "owner1"}}`
 		req := httptest.NewRequest("PUT", "/trust-marks/types/1", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		resp, respBody := doRequest(t, app, req)
