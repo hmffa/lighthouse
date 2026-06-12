@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/go-oidfed/lighthouse/storage/model"
 )
@@ -328,4 +330,163 @@ func TestAuthActorChainRecordsEventActor(t *testing.T) {
 		}
 	}
 	t.Errorf("No %q event recorded for created subordinate", model.EventTypeCreated)
+}
+
+// --- OpenAPI spec ↔ route table conformance ---
+
+// pathParamRe matches both spec-style {param} and fiber-style :param segments.
+var pathParamRe = regexp.MustCompile(`\{[^}]*\}|:[^/]+`)
+
+// normalizePathParams maps both parameter syntaxes onto "{}" so spec paths and
+// fiber routes compare structurally, independent of parameter names, and
+// strips a trailing slash (fiber group roots register as ".../").
+func normalizePathParams(p string) string {
+	p = pathParamRe.ReplaceAllString(p, "{}")
+	if len(p) > 1 {
+		p = strings.TrimRight(p, "/")
+	}
+	return p
+}
+
+// specDocumentedPaths parses the embedded OpenAPI documents and returns the
+// normalized documented path set plus any path items that declare no
+// operations at all (stale spec entries).
+func specDocumentedPaths(t *testing.T) (documented map[string]bool, emptyPathItems []string) {
+	t.Helper()
+	documented = map[string]bool{}
+	for _, name := range []string{"openapi.yaml", "openapi-users.yaml"} {
+		raw, err := assets.ReadFile(name)
+		if err != nil {
+			t.Fatalf("Failed to read embedded %s: %v", name, err)
+		}
+		var doc struct {
+			Paths map[string]map[string]any `yaml:"paths"`
+		}
+		if err := yaml.Unmarshal(raw, &doc); err != nil {
+			t.Fatalf("Failed to parse %s: %v", name, err)
+		}
+		for p, item := range doc.Paths {
+			ops := 0
+			for k := range item {
+				switch strings.ToLower(k) {
+				case "get", "post", "put", "patch", "delete", "head", "options":
+					ops++
+				}
+			}
+			if ops == 0 {
+				emptyPathItems = append(emptyPathItems, p+" ("+name+")")
+				continue
+			}
+			documented[normalizePathParams(p)] = true
+		}
+	}
+	return documented, emptyPathItems
+}
+
+// TestRegisteredRoutesMatchOpenAPISpec is a conformance RATCHET between the
+// fiber route table (via the real Register()) and the embedded OpenAPI specs:
+// any NEW undocumented route, documented-but-unregistered path, or empty spec
+// path item fails the test. Today's known documentation debt is allowlisted
+// below (see OPENAPI_FINDINGS.md); when the spec is fixed, the corresponding
+// entry becomes stale and the test fails until it is removed — the lists can
+// only shrink.
+func TestRegisteredRoutesMatchOpenAPISpec(t *testing.T) {
+	t.Parallel()
+
+	// Spec/docs-serving meta endpoints: intentionally not part of the API spec.
+	metaRoutes := map[string]bool{
+		"/api/v1/admin/docs":               true,
+		"/api/v1/admin/docs/users":         true,
+		"/api/v1/admin/openapi.yaml":       true,
+		"/api/v1/admin/openapi.json":       true,
+		"/api/v1/admin/openapi-users.yaml": true,
+		"/api/v1/admin/openapi-users.json": true,
+	}
+
+	// Known documentation debt — routes that exist but are absent from the
+	// spec (OPENAPI_FINDINGS.md, structural gaps): the entire stats API is
+	// undocumented. Remove entries as the spec gains them.
+	knownUndocumentedRoutes := map[string]bool{
+		"/api/v1/admin/stats/summary":         true,
+		"/api/v1/admin/stats/daily":           true,
+		"/api/v1/admin/stats/timeseries":      true,
+		"/api/v1/admin/stats/latency":         true,
+		"/api/v1/admin/stats/export":          true,
+		"/api/v1/admin/stats/top/clients":     true,
+		"/api/v1/admin/stats/top/countries":   true,
+		"/api/v1/admin/stats/top/endpoints":   true,
+		"/api/v1/admin/stats/top/params":      true,
+		"/api/v1/admin/stats/top/user-agents": true,
+	}
+
+	// Known stale spec entries — documented paths with no registered route.
+	knownSpecPathsWithoutRoute := map[string]bool{}
+
+	// Known spec path items declaring zero operations (OPENAPI_FINDINGS.md:
+	// leftover of the plural→singular metadata-policy-crit rename).
+	knownEmptySpecPathItems := map[string]bool{
+		"/api/v1/admin/subordinates/metadata-policies-crit (openapi.yaml)": true,
+	}
+
+	app, _ := setupRegisteredApp(t, nil)
+	registered := map[string]bool{}
+	for _, r := range app.GetRoutes(true) {
+		switch r.Method {
+		case http.MethodHead, http.MethodConnect, http.MethodTrace, http.MethodOptions:
+			continue
+		}
+		registered[normalizePathParams(r.Path)] = true
+	}
+	documented, emptyItems := specDocumentedPaths(t)
+
+	for p := range registered {
+		if metaRoutes[p] || knownUndocumentedRoutes[p] {
+			continue
+		}
+		if !documented[p] {
+			t.Errorf("Registered route %s is not documented in the OpenAPI spec", p)
+		}
+	}
+	for p := range documented {
+		if knownSpecPathsWithoutRoute[p] {
+			continue
+		}
+		if !registered[p] {
+			t.Errorf("Spec documents %s but no route is registered", p)
+		}
+	}
+	for _, p := range emptyItems {
+		if !knownEmptySpecPathItems[p] {
+			t.Errorf("Spec path item %s declares no operations (stale entry)", p)
+		}
+	}
+
+	// Ratchet maintenance: every allowlist entry must still describe a real
+	// discrepancy; otherwise it must be removed.
+	for p := range knownUndocumentedRoutes {
+		if !registered[p] {
+			t.Errorf("Allowlist entry %s is no longer a registered route — remove it", p)
+		} else if documented[p] {
+			t.Errorf("Allowlist entry %s is now documented — remove it from knownUndocumentedRoutes", p)
+		}
+	}
+	for p := range knownSpecPathsWithoutRoute {
+		if !documented[p] {
+			t.Errorf("Allowlist entry %s is no longer in the spec — remove it", p)
+		} else if registered[p] {
+			t.Errorf("Allowlist entry %s now has a route — remove it from knownSpecPathsWithoutRoute", p)
+		}
+	}
+	for p := range knownEmptySpecPathItems {
+		found := false
+		for _, e := range emptyItems {
+			if e == p {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Allowlist entry %s is no longer an empty spec path item — remove it", p)
+		}
+	}
 }
