@@ -686,6 +686,109 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 
 // --- GET /subordinates/:subordinateID/metadata-policies/:entityType/:claim TESTS ---
 
+// TestSubordinateMetadataPolicyEntityTypeMatrix exercises every arm of the
+// get/set/deleteMetadataPolicy switches (subordinates_helpers.go) — all six
+// named entity types plus the Extra-map default — through PUT → GET → DELETE
+// round-trips. Before this test only two arms were ever executed, so a typo in
+// the entity-type→field mapping was undetectable.
+func TestSubordinateMetadataPolicyEntityTypeMatrix(t *testing.T) {
+	t.Parallel()
+
+	// Independent re-statement of the entity-type→field mapping: the test's
+	// own oracle, so a cross-wired switch arm cannot hide behind a same-arm
+	// GET round-trip.
+	policyField := func(p *oidfed.MetadataPolicies, et string) oidfed.MetadataPolicy {
+		switch et {
+		case "openid_provider":
+			return p.OpenIDProvider
+		case "openid_relying_party":
+			return p.RelyingParty
+		case "oauth_authorization_server":
+			return p.OAuthAuthorizationServer
+		case "oauth_client":
+			return p.OAuthClient
+		case "oauth_resource":
+			return p.OAuthProtectedResource
+		case "federation_entity":
+			return p.FederationEntity
+		default:
+			return p.Extra[et]
+		}
+	}
+
+	entityTypes := []string{
+		"openid_provider",
+		"openid_relying_party",
+		"oauth_authorization_server",
+		"oauth_client",
+		"oauth_resource",
+		"federation_entity",
+		"my_custom_entity_type", // Extra-map default arm
+	}
+
+	for _, et := range entityTypes {
+		et := et
+		t.Run(et, func(t *testing.T) {
+			t.Parallel()
+			app, backends := setupSubordinateMetadataPoliciesApp(t)
+
+			entityID := "https://matrix-" + et + ".example.org"
+			backends.Subordinates.Add(model.ExtendedSubordinateInfo{
+				BasicSubordinateInfo: model.BasicSubordinateInfo{EntityID: entityID},
+			})
+			saved, err := backends.Subordinates.Get(entityID)
+			if err != nil {
+				t.Fatalf("Failed to get subordinate: %v", err)
+			}
+
+			path := fmt.Sprintf("/subordinates/%d/metadata-policies/%s", saved.ID, et)
+
+			// PUT a policy for this entity type (subordinate starts with a
+			// nil MetadataPolicy, so this also covers the init path).
+			req := httptest.NewRequest("PUT", path, strings.NewReader(`{"matrix_claim":{"value":"matrix"}}`))
+			req.Header.Set("Content-Type", "application/json")
+			resp, body := doRequest(t, app, req)
+			requireStatusMsg(t, resp, body, http.StatusOK, "PUT "+et)
+
+			// GET must round-trip the policy through getMetadataPolicy.
+			resp, body = doRequest(t, app, httptest.NewRequest("GET", path, http.NoBody))
+			requireStatusMsg(t, resp, body, http.StatusOK, "GET "+et)
+			var got oidfed.MetadataPolicy
+			if err := json.Unmarshal(body, &got); err != nil {
+				t.Fatalf("Failed to unmarshal policy for %s: %v", et, err)
+			}
+			if entry, ok := got["matrix_claim"]; !ok || entry["value"] != "matrix" {
+				t.Errorf("Policy for %s did not round-trip, got %v", et, got)
+			}
+
+			// The persisted policy must sit under the struct field mapped to
+			// this entity type.
+			updated, err := backends.Subordinates.Get(entityID)
+			if err != nil {
+				t.Fatalf("Failed to get subordinate: %v", err)
+			}
+			policies := requireMetadataPolicies(t, updated.MetadataPolicy)
+			if entry, ok := policyField(policies, et)["matrix_claim"]; !ok || entry["value"] != "matrix" {
+				t.Errorf("Policy for %s not stored under its mapped field, got %v", et, policyField(policies, et))
+			}
+
+			// DELETE must clear exactly this entity type's policy.
+			resp, body = doRequest(t, app, httptest.NewRequest("DELETE", path, http.NoBody))
+			requireStatusMsg(t, resp, body, http.StatusNoContent, "DELETE "+et)
+
+			after, err := backends.Subordinates.Get(entityID)
+			if err != nil {
+				t.Fatalf("Failed to get subordinate: %v", err)
+			}
+			if after.MetadataPolicy != nil {
+				if remaining := policyField(after.MetadataPolicy, et); remaining != nil {
+					t.Errorf("Policy for %s still present after DELETE: %v", et, remaining)
+				}
+			}
+		})
+	}
+}
+
 func TestGetSubordinateMetadataPolicyByClaim(t *testing.T) {
 	t.Parallel()
 	t.Run("Success", func(t *testing.T) {
