@@ -101,7 +101,7 @@ func TestSubordinateJWKS(t *testing.T) {
 		app, _ := setupSubordinateKeysApp(t)
 		req := httptest.NewRequest("GET", "/subordinates/9999/jwks", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 
 	t.Run("PUT Success", func(t *testing.T) {
@@ -166,7 +166,7 @@ func TestSubordinateJWKS(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	// PIN: `{"keys":[]}` is currently accepted (200) and wipes the entire
@@ -209,7 +209,7 @@ func TestSubordinateJWKS(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("PUT InvalidBody_InvalidBase64", func(t *testing.T) {
@@ -225,7 +225,7 @@ func TestSubordinateJWKS(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("POST Success", func(t *testing.T) {
@@ -295,7 +295,7 @@ func TestSubordinateJWKS(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -362,7 +362,7 @@ func TestSubordinateJWKDelete(t *testing.T) {
 		app, _ := setupSubordinateKeysApp(t)
 		req := httptest.NewRequest("DELETE", "/subordinates/9999/jwks/delete-me", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 
 	t.Run("NotFound/Key", func(t *testing.T) {

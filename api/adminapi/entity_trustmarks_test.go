@@ -309,7 +309,7 @@ func TestEntityTrustMarksList(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/entity-configuration/trust-marks/", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusInternalServerError)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusInternalServerError, "server_error")
 	})
 }
 
@@ -371,7 +371,7 @@ func TestEntityTrustMarksCreate(t *testing.T) {
 		)
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 		if invalidator.calls != 0 {
 			t.Fatalf("expected invalidator to stay at 0 calls, got %d", invalidator.calls)
 		}
@@ -394,7 +394,7 @@ func TestEntityTrustMarksCreate(t *testing.T) {
 		)
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusConflict)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusConflict, "invalid_request")
 		if invalidator.calls != 0 {
 			t.Fatalf("expected invalidator to stay at 0 calls, got %d", invalidator.calls)
 		}
@@ -441,7 +441,7 @@ func TestEntityTrustMarksGet(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/entity-configuration/trust-marks/3", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusInternalServerError)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusInternalServerError, "server_error")
 	})
 }
 
@@ -507,7 +507,7 @@ func TestEntityTrustMarksUpdate(t *testing.T) {
 		)
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 		if invalidator.calls != 0 {
 			t.Fatalf("expected invalidator to stay at 0 calls, got %d", invalidator.calls)
 		}
@@ -580,7 +580,7 @@ func TestEntityTrustMarksPatch(t *testing.T) {
 		)
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 		if invalidator.calls != 0 {
 			t.Fatalf("expected invalidator to stay at 0 calls, got %d", invalidator.calls)
 		}
@@ -627,7 +627,7 @@ func TestEntityTrustMarksDelete(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodDelete, "/entity-configuration/trust-marks/missing", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 		if invalidator.calls != 0 {
 			t.Fatalf("expected invalidator to stay at 0 calls, got %d", invalidator.calls)
 		}

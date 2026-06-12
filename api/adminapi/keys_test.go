@@ -167,7 +167,7 @@ func TestPostPublicKey(t *testing.T) {
 
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("KidMismatch", func(t *testing.T) {
@@ -189,7 +189,7 @@ func TestPostPublicKey(t *testing.T) {
 
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -201,7 +201,7 @@ func TestPostPublicKey(t *testing.T) {
 
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -357,7 +357,7 @@ func TestUpdatePublicKeyExp(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -369,7 +369,7 @@ func TestUpdatePublicKeyExp(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -435,7 +435,7 @@ func TestRotatePublicKey(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 
 	t.Run("MissingKey", func(t *testing.T) {
@@ -447,7 +447,7 @@ func TestRotatePublicKey(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -459,7 +459,7 @@ func TestRotatePublicKey(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("WithCustomOldKeyExp", func(t *testing.T) {
@@ -771,7 +771,7 @@ func TestPutKMSAlg(t *testing.T) {
 
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("InvalidAlgorithm", func(t *testing.T) {
@@ -800,7 +800,7 @@ func TestPutKMSAlg(t *testing.T) {
 
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -829,7 +829,7 @@ func TestPutKMSAlg(t *testing.T) {
 
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("Success", func(t *testing.T) {
@@ -934,7 +934,7 @@ func TestPutKMSRSAKeyLen(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -962,7 +962,7 @@ func TestPutKMSRSAKeyLen(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -1032,7 +1032,7 @@ func TestGetKMSRotation(t *testing.T) {
 		req := httptest.NewRequest("GET", "/kms/rotation", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -1105,7 +1105,7 @@ func TestPutKMSRotation(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("InvalidBody", func(t *testing.T) {
@@ -1132,7 +1132,7 @@ func TestPutKMSRotation(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -1247,7 +1247,7 @@ func TestPatchKMSRotation(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -1302,6 +1302,6 @@ func TestPostKMSRotateAll(t *testing.T) {
 		req := httptest.NewRequest("POST", "/kms/rotate", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }

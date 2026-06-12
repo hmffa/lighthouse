@@ -116,7 +116,7 @@ func TestGetSubordinateMetadataPolicies(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		requireStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
@@ -126,7 +126,7 @@ func TestGetSubordinateMetadataPolicies(t *testing.T) {
 		req := httptest.NewRequest("GET", "/subordinates/9999/metadata-policies", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -211,7 +211,7 @@ func TestPutSubordinateMetadataPolicies(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 
 	t.Run("NotFound", func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestPutSubordinateMetadataPolicies(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -301,7 +301,7 @@ func TestPostSubordinateMetadataPolicies(t *testing.T) {
 		req := httptest.NewRequest("POST", "/subordinates/9999/metadata-policies", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -370,7 +370,7 @@ func TestDeleteSubordinateMetadataPolicies(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/subordinates/9999/metadata-policies", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -421,7 +421,7 @@ func TestGetSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		app, _ := setupSubordinateMetadataPoliciesApp(t)
 		req := httptest.NewRequest("GET", "/subordinates/9999/metadata-policies/openid_relying_party", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 
 	t.Run("NotFound/EntityType", func(t *testing.T) {
@@ -442,7 +442,7 @@ func TestGetSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_provider", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -527,7 +527,7 @@ func TestPutSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -601,7 +601,7 @@ func TestPostSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -659,7 +659,7 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		app, _ := setupSubordinateMetadataPoliciesApp(t)
 		req := httptest.NewRequest("DELETE", "/subordinates/9999/metadata-policies/openid_relying_party", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 
 	// PIN of an API inconsistency: deleting an entity type absent from the
@@ -856,7 +856,7 @@ func TestGetSubordinateMetadataPolicyByClaim(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/missing", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -936,7 +936,7 @@ func TestPutSubordinateMetadataPolicyByClaim(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -997,7 +997,7 @@ func TestPostSubordinateMetadataPolicyByClaim(t *testing.T) {
 		req := httptest.NewRequest("POST", "/subordinates/1/metadata-policies/openid_relying_party/contacts", strings.NewReader("bad json"))
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -1064,7 +1064,7 @@ func TestDeleteSubordinateMetadataPolicyByClaim(t *testing.T) {
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/not_here", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -1129,7 +1129,7 @@ func TestGetSubordinateMetadataPolicyByOperator(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts/add", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -1200,7 +1200,7 @@ func TestPutSubordinateMetadataPolicyByOperator(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 
@@ -1271,7 +1271,7 @@ func TestDeleteSubordinateMetadataPolicyByOperator(t *testing.T) {
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/subordinates/%d/metadata-policies/openid_relying_party/contacts/not_here", saved.ID), http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -1400,7 +1400,7 @@ func TestPutGeneralMetadataPolicies(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		resp, bodyBytes := doRequest(t, app, req)
 
-		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 	})
 }
 

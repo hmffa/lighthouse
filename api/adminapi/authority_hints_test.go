@@ -120,7 +120,7 @@ func TestAuthorityHintsList(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/entity-configuration/authority-hints/", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusInternalServerError)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusInternalServerError, "server_error")
 	})
 }
 
@@ -178,7 +178,7 @@ func TestAuthorityHintsCreate(t *testing.T) {
 		)
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusBadRequest)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusBadRequest, "invalid_request")
 		requireEntityConfigurationCache(t, true, cacheValue)
 	})
 
@@ -197,7 +197,26 @@ func TestAuthorityHintsCreate(t *testing.T) {
 		)
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusConflict)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusConflict, "invalid_request")
+		requireEntityConfigurationCache(t, true, cacheValue)
+	})
+
+	t.Run("StoreErrorKeepsCache", func(t *testing.T) {
+		setEntityConfigurationCache(t, cacheValue)
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
+			createFn: func(_ smodel.AddAuthorityHint) (*smodel.AuthorityHint, error) {
+				return nil, errors.New("db down")
+			},
+		})
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/entity-configuration/authority-hints/",
+			strings.NewReader(`{"entity_id":"https://ta.example"}`),
+		)
+		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		resp, bodyBytes := doRequest(t, app, req)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusInternalServerError, "server_error")
 		requireEntityConfigurationCache(t, true, cacheValue)
 	})
 }
@@ -241,7 +260,26 @@ func TestAuthorityHintsGet(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/entity-configuration/authority-hints/missing", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
+	})
+
+	// PIN: a DB outage is reported as 404 because the handler flattens ANY
+	// store error to not_found and does not distinguish typed NotFoundError
+	// from generic errors (authority_hints.go:50-53; OPENAPI_FINDINGS.md
+	// finding #6). Split into 404-typed/500-generic subtests once the impl
+	// adds that mapping.
+	t.Run("GenericStoreErrorReturnsNotFound", func(t *testing.T) {
+		t.Parallel()
+
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
+			getFn: func(string) (*smodel.AuthorityHint, error) {
+				return nil, errors.New("db down")
+			},
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/entity-configuration/authority-hints/42", http.NoBody)
+		resp, bodyBytes := doRequest(t, app, req)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 	})
 }
 
@@ -302,7 +340,7 @@ func TestAuthorityHintsUpdate(t *testing.T) {
 		)
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 		requireEntityConfigurationCache(t, true, cacheValue)
 	})
 
@@ -321,7 +359,26 @@ func TestAuthorityHintsUpdate(t *testing.T) {
 		)
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusConflict)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusConflict, "invalid_request")
+		requireEntityConfigurationCache(t, true, cacheValue)
+	})
+
+	t.Run("StoreErrorKeepsCache", func(t *testing.T) {
+		setEntityConfigurationCache(t, cacheValue)
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
+			updateFn: func(string, smodel.AddAuthorityHint) (*smodel.AuthorityHint, error) {
+				return nil, errors.New("db down")
+			},
+		})
+
+		req := httptest.NewRequest(
+			http.MethodPut,
+			"/entity-configuration/authority-hints/7",
+			strings.NewReader(`{"entity_id":"https://updated.example"}`),
+		)
+		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+		resp, bodyBytes := doRequest(t, app, req)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusInternalServerError, "server_error")
 		requireEntityConfigurationCache(t, true, cacheValue)
 	})
 }
@@ -360,7 +417,26 @@ func TestAuthorityHintsDelete(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodDelete, "/entity-configuration/authority-hints/missing", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
-		requireStatus(t, resp, bodyBytes, http.StatusNotFound)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
+		requireEntityConfigurationCache(t, true, cacheValue)
+	})
+
+	// PIN: a DB outage is reported as 404 because the handler flattens ANY
+	// store error to not_found and does not distinguish typed NotFoundError
+	// from generic errors (authority_hints.go:85-87; OPENAPI_FINDINGS.md
+	// finding #6). Split into 404-typed/500-generic subtests once the impl
+	// adds that mapping.
+	t.Run("GenericStoreErrorReturnsNotFoundKeepsCache", func(t *testing.T) {
+		setEntityConfigurationCache(t, cacheValue)
+		app := setupAuthorityHintsTestApp(t, &mockAuthorityHintsStore{
+			deleteFn: func(string) error {
+				return errors.New("db down")
+			},
+		})
+
+		req := httptest.NewRequest(http.MethodDelete, "/entity-configuration/authority-hints/11", http.NoBody)
+		resp, bodyBytes := doRequest(t, app, req)
+		assertErrorResponse(t, resp, bodyBytes, http.StatusNotFound, "not_found")
 		requireEntityConfigurationCache(t, true, cacheValue)
 	})
 }

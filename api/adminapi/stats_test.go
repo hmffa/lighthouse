@@ -175,6 +175,7 @@ func TestStatsAPISummary(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/stats/summary", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
+		// Not assertErrorResponse: stats.go:82-84 echoes raw err.Error() in "error" instead of the structured {"error":code,"error_description":...} contract — worth unifying.
 		requireStatus(t, resp, bodyBytes, http.StatusInternalServerError)
 	})
 }
