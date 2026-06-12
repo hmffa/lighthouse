@@ -75,21 +75,49 @@ func TestEntityConfigurationCacheInvalidationMiddleware(t *testing.T) {
 		requireEntityConfigurationCache(t, true, cacheValue)
 	})
 
-	// TODO: Currently there are no redirects. If we add any in the future, we should verify that they do not clear the cache.
-	// t.Run("RedirectDoesNotClearCache", func(t *testing.T) {
-	// 	setEntityConfigurationCache(t, cacheValue)
+	t.Run("Exact200DeletesCache", func(t *testing.T) {
+		setEntityConfigurationCache(t, cacheValue)
+		app := fiber.New()
+		app.Post("/entity-config", entityConfigurationCacheInvalidationMiddleware, func(c *fiber.Ctx) error {
+			return c.SendString("ok") // exactly 200, the lower boundary
+		})
 
-	// 	app := fiber.New()
-	// 	app.Post("/entity-config", entityConfigurationCacheInvalidationMiddleware, func(c *fiber.Ctx) error {
-	// 		return c.Redirect("/other", fiber.StatusMovedPermanently)
-	// 	})
+		req := httptest.NewRequest(http.MethodPost, "/entity-config", http.NoBody)
+		resp, bodyBytes := doRequest(t, app, req)
+		requireStatus(t, resp, bodyBytes, http.StatusOK)
+		requireEntityConfigurationCache(t, false, nil)
+	})
 
-	// 	req := httptest.NewRequest(http.MethodPost, "/entity-config", http.NoBody)
-	// 	resp, bodyBytes := doRequest(t, app, req)
+	// PIN: a 3xx redirect currently CLEARS the cache — the middleware treats
+	// everything in [200,400) as a successful mutation. No redirects exist on
+	// these routes today; an earlier (commented-out) draft expected redirects
+	// to keep the cache instead. If the intended boundary ever changes to
+	// status < 300, flip this assertion.
+	t.Run("RedirectClearsCache", func(t *testing.T) {
+		setEntityConfigurationCache(t, cacheValue)
+		app := fiber.New()
+		app.Post("/entity-config", entityConfigurationCacheInvalidationMiddleware, func(c *fiber.Ctx) error {
+			return c.Redirect("/other", fiber.StatusMovedPermanently)
+		})
 
-	// 	requireStatus(t, resp, bodyBytes, fiber.StatusMovedPermanently)
-	// 	requireEntityConfigurationCache(t, true, cacheValue)
-	// })
+		req := httptest.NewRequest(http.MethodPost, "/entity-config", http.NoBody)
+		resp, bodyBytes := doRequest(t, app, req)
+		requireStatus(t, resp, bodyBytes, fiber.StatusMovedPermanently)
+		requireEntityConfigurationCache(t, false, nil)
+	})
+
+	t.Run("HandlerErrorKeepsCache", func(t *testing.T) {
+		setEntityConfigurationCache(t, cacheValue)
+		app := fiber.New()
+		app.Post("/entity-config", entityConfigurationCacheInvalidationMiddleware, func(_ *fiber.Ctx) error {
+			return fiber.ErrConflict
+		})
+
+		req := httptest.NewRequest(http.MethodPost, "/entity-config", http.NoBody)
+		resp, bodyBytes := doRequest(t, app, req)
+		requireStatus(t, resp, bodyBytes, http.StatusConflict)
+		requireEntityConfigurationCache(t, true, cacheValue)
+	})
 }
 
 // TestSubordinateStatementsCacheInvalidationMiddleware must NOT use t.Parallel().
@@ -143,6 +171,53 @@ func TestSubordinateStatementsCacheInvalidationMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodDelete, "/subordinates/123", http.NoBody)
 		resp, bodyBytes := doRequest(t, app, req)
 		requireStatus(t, resp, bodyBytes, http.StatusInternalServerError)
+		requireCacheEntry(t, key123, true, value123)
+		requireCacheEntry(t, key456, true, value456)
+	})
+
+	t.Run("Exact200DeletesOnlyTarget", func(t *testing.T) {
+		setCacheEntry(t, key123, value123)
+		setCacheEntry(t, key456, value456)
+		app := fiber.New()
+		app.Put("/subordinates/:subordinateID", subordinateStatementsCacheInvalidationMiddleware, func(c *fiber.Ctx) error {
+			return c.SendString("ok") // exactly 200, the lower boundary
+		})
+
+		req := httptest.NewRequest(http.MethodPut, "/subordinates/123", http.NoBody)
+		resp, bodyBytes := doRequest(t, app, req)
+		requireStatus(t, resp, bodyBytes, http.StatusOK)
+		requireCacheEntry(t, key123, false, nil)
+		requireCacheEntry(t, key456, true, value456)
+	})
+
+	// PIN: a 3xx redirect currently CLEARS the targeted statement — same
+	// [200,400) boundary as the entity-configuration middleware above.
+	t.Run("RedirectClearsTarget", func(t *testing.T) {
+		setCacheEntry(t, key123, value123)
+		setCacheEntry(t, key456, value456)
+		app := fiber.New()
+		app.Put("/subordinates/:subordinateID", subordinateStatementsCacheInvalidationMiddleware, func(c *fiber.Ctx) error {
+			return c.Redirect("/other", fiber.StatusMovedPermanently)
+		})
+
+		req := httptest.NewRequest(http.MethodPut, "/subordinates/123", http.NoBody)
+		resp, bodyBytes := doRequest(t, app, req)
+		requireStatus(t, resp, bodyBytes, fiber.StatusMovedPermanently)
+		requireCacheEntry(t, key123, false, nil)
+		requireCacheEntry(t, key456, true, value456)
+	})
+
+	t.Run("HandlerErrorKeepsAll", func(t *testing.T) {
+		setCacheEntry(t, key123, value123)
+		setCacheEntry(t, key456, value456)
+		app := fiber.New()
+		app.Delete("/subordinates/:subordinateID", subordinateStatementsCacheInvalidationMiddleware, func(_ *fiber.Ctx) error {
+			return fiber.ErrConflict
+		})
+
+		req := httptest.NewRequest(http.MethodDelete, "/subordinates/123", http.NoBody)
+		resp, bodyBytes := doRequest(t, app, req)
+		requireStatus(t, resp, bodyBytes, http.StatusConflict)
 		requireCacheEntry(t, key123, true, value123)
 		requireCacheEntry(t, key456, true, value456)
 	})
