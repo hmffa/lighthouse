@@ -532,11 +532,15 @@ func TestTrustMarkOwnersHandlers_TypesSet(t *testing.T) {
 		assertErrorResponse(t, resp, body, http.StatusBadRequest, "invalid_request")
 	})
 
-	t.Run("OwnerNotFound", func(t *testing.T) {
+	// PIN: a nonexistent owner is indistinguishable here — SetTypes returns a
+	// generic error (no typed NotFoundError yet), so the handler answers 500
+	// instead of 404 (trustmark_owners_issuers.go). When a NotFound mapping
+	// is added, switch this to a typed-error subtest expecting 404.
+	t.Run("SetTypesStoreError", func(t *testing.T) {
 		t.Parallel()
 		mockStore := &mockTrustMarkOwnersStore{
 			setTypesFn: func(_ string, _ []string) ([]uint, error) {
-				return nil, errors.New("db error") // Generic error since SetTypes doesn't explicitly return NotFound yet
+				return nil, errors.New("db error")
 			},
 		}
 		app := setupTrustMarkOwnersApp(t, mockStore, &mockTrustMarkTypesStoreForOwners{})
@@ -602,7 +606,11 @@ func TestTrustMarkOwnersHandlers_TypesAdd(t *testing.T) {
 		assertErrorResponse(t, resp, body, http.StatusBadRequest, "invalid_request")
 	})
 
-	t.Run("OwnerNotFound", func(t *testing.T) {
+	// PIN: a nonexistent owner is indistinguishable here — AddType returns a
+	// generic error (no typed NotFoundError yet), so the handler answers 500
+	// instead of 404 (trustmark_owners_issuers.go). When a NotFound mapping
+	// is added, switch this to a typed-error subtest expecting 404.
+	t.Run("AddTypeStoreError", func(t *testing.T) {
 		t.Parallel()
 		mockStore := &mockTrustMarkOwnersStore{
 			addTypeFn: func(_ string, _ uint) ([]uint, error) {
@@ -1047,7 +1055,11 @@ func TestGlobalTrustMarkIssuersHandlers_TypesSet(t *testing.T) {
 		assertErrorResponse(t, resp, body, http.StatusBadRequest, "invalid_request")
 	})
 
-	t.Run("IssuerNotFound", func(t *testing.T) {
+	// PIN: a nonexistent issuer is indistinguishable here — SetTypes returns a
+	// generic error (no typed NotFoundError yet), so the handler answers 500
+	// instead of 404 (trustmark_owners_issuers.go). When a NotFound mapping
+	// is added, switch this to a typed-error subtest expecting 404.
+	t.Run("SetTypesStoreError", func(t *testing.T) {
 		t.Parallel()
 		mockStore := &mockTrustMarkIssuersStore{
 			setTypesFn: func(_ string, _ []string) ([]uint, error) {
@@ -1117,7 +1129,11 @@ func TestGlobalTrustMarkIssuersHandlers_TypesAdd(t *testing.T) {
 		assertErrorResponse(t, resp, body, http.StatusBadRequest, "invalid_request")
 	})
 
-	t.Run("IssuerNotFound", func(t *testing.T) {
+	// PIN: a nonexistent issuer is indistinguishable here — AddType returns a
+	// generic error (no typed NotFoundError yet), so the handler answers 500
+	// instead of 404 (trustmark_owners_issuers.go). When a NotFound mapping
+	// is added, switch this to a typed-error subtest expecting 404.
+	t.Run("AddTypeStoreError", func(t *testing.T) {
 		t.Parallel()
 		mockStore := &mockTrustMarkIssuersStore{
 			addTypeFn: func(_ string, _ uint) ([]uint, error) {

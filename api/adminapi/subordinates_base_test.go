@@ -209,6 +209,9 @@ func TestGetSubordinates(t *testing.T) {
 		},
 	)
 
+	// PIN: an empty status param is treated as "no filter" and answers 200
+	// with the unfiltered list (flipped from 400 in commit 1468d6d). Whether
+	// empty filter params should be rejected is an open contract question.
 	t.Run(
 		"EmptyStatus", func(t *testing.T) {
 			t.Parallel()
@@ -221,6 +224,9 @@ func TestGetSubordinates(t *testing.T) {
 		},
 	)
 
+	// PIN: an empty entity_type param is treated as "no filter" and answers
+	// 200 with the unfiltered list (flipped from 400 in commit 1468d6d), same
+	// open contract question as EmptyStatus above.
 	t.Run(
 		"EmptyEntityType", func(t *testing.T) {
 			t.Parallel()

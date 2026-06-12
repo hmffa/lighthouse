@@ -662,7 +662,12 @@ func TestDeleteSubordinateMetadataPolicyByEntityType(t *testing.T) {
 		assertStatus(t, resp, bodyBytes, http.StatusNotFound)
 	})
 
-	t.Run("NotFound/EntityType", func(t *testing.T) {
+	// PIN of an API inconsistency: deleting an entity type absent from the
+	// policy answers idempotent 204, while the sibling delete-claim and
+	// delete-operator endpoints answer 404 for missing items
+	// (subordinates_metadata_policies.go). Documented until the contract is
+	// unified.
+	t.Run("MissingEntityType_Idempotent204", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateMetadataPoliciesApp(t)
 

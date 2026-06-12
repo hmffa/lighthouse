@@ -169,7 +169,11 @@ func TestSubordinateJWKS(t *testing.T) {
 		assertStatus(t, resp, bodyBytes, http.StatusBadRequest)
 	})
 
-	t.Run("PUT InvalidBody_EmptyKeys", func(t *testing.T) {
+	// PIN: `{"keys":[]}` is currently accepted (200) and wipes the entire
+	// JWKS. The OpenAPI spec is silent on empty-set semantics; whether PUT
+	// should reject an empty key set instead is pending maintainer
+	// clarification.
+	t.Run("PUT EmptyKeys_ClearsJWKS", func(t *testing.T) {
 		t.Parallel()
 		app, backends := setupSubordinateKeysApp(t)
 		backends.Subordinates.Add(model.ExtendedSubordinateInfo{
